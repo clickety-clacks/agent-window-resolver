@@ -1,0 +1,331 @@
+{
+  "schema": "agent-window-resolver.protocol-fixtures.v1",
+  "valid": [
+    {
+      "name": "resolve-direct-local-matched",
+      "request": {
+        "schema": "agent-window-resolver.request.v1",
+        "requestId": "fixture-resolve-1",
+        "operation": "resolve",
+        "requestedRelation": "visible_exact",
+        "target": {
+          "identity": {
+            "machine": "OSANWE.",
+            "instanceId": "agent-instance-1",
+            "pid": 200,
+            "startTimeTicks": "42"
+          }
+        },
+        "local": {
+          "machine": "osanwe"
+        },
+        "windows": [
+          {
+            "stableId": "window-1",
+            "address": "0xabc",
+            "pid": 100,
+            "startTimeTicks": "20",
+            "class": "com.example.Terminal"
+          }
+        ]
+      },
+      "response": {
+        "schema": "agent-window-resolver.response.v1",
+        "requestId": "fixture-resolve-1",
+        "operation": "resolve",
+        "requestedRelation": "visible_exact",
+        "status": "matched",
+        "candidates": [
+          {
+            "window": {
+              "stableId": "window-1",
+              "address": "0xabc",
+              "pid": 100,
+              "startTimeTicks": "20",
+              "class": "com.example.Terminal"
+            },
+            "target": {
+              "identity": {
+                "machine": "osanwe",
+                "instanceId": "agent-instance-1",
+                "pid": 200,
+                "startTimeTicks": "42"
+              },
+              "location": {
+                "kind": "local"
+              }
+            },
+            "proof": {
+              "state": "complete",
+              "relation": "visible_exact",
+              "evidence": [
+                {
+                  "code": "target_process_live",
+                  "source": "proc",
+                  "result": "supports",
+                  "details": {
+                    "pid": 200,
+                    "startTimeTicks": "42"
+                  }
+                },
+                {
+                  "code": "window_process_tree_contains_target",
+                  "source": "proc",
+                  "result": "supports",
+                  "details": {
+                    "pid": 100
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "evidence": [],
+        "reasons": []
+      },
+      "exitCode": 0
+    }
+  ],
+  "negative": [
+    {
+      "name": "revalidate-target-changed",
+      "request": {
+        "schema": "agent-window-resolver.request.v1",
+        "requestId": "fixture-revalidate-target",
+        "operation": "revalidate",
+        "requestedRelation": "visible_exact",
+        "target": {
+          "identity": {
+            "machine": "osanwe",
+            "instanceId": "agent-instance-2",
+            "pid": 201,
+            "startTimeTicks": "43"
+          }
+        },
+        "local": {
+          "machine": "osanwe"
+        },
+        "windows": [
+          {
+            "stableId": "window-1",
+            "address": "0xabc",
+            "pid": 100,
+            "startTimeTicks": "20"
+          }
+        ],
+        "prior": {
+          "window": {
+            "stableId": "window-1",
+            "address": "0xabc",
+            "pid": 100,
+            "startTimeTicks": "20"
+          },
+          "target": {
+            "identity": {
+              "machine": "osanwe",
+              "instanceId": "agent-instance-1",
+              "pid": 200,
+              "startTimeTicks": "42"
+            },
+            "location": {
+              "kind": "local"
+            }
+          },
+          "proof": {
+            "state": "complete",
+            "relation": "visible_exact",
+            "evidence": [
+              {
+                "code": "prior_complete",
+                "source": "caller",
+                "result": "informational"
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "status": "unresolved",
+        "candidateCount": 0,
+        "reasonCode": "prior_target_changed",
+        "exitCode": 0
+      }
+    },
+    {
+      "name": "revalidate-wrong-relation",
+      "request": {
+        "schema": "agent-window-resolver.request.v1",
+        "requestId": "fixture-revalidate-relation",
+        "operation": "revalidate",
+        "requestedRelation": "linked_client",
+        "target": {
+          "identity": {
+            "machine": "osanwe",
+            "instanceId": "agent-instance-1",
+            "pid": 200,
+            "startTimeTicks": "42"
+          }
+        },
+        "local": {
+          "machine": "osanwe"
+        },
+        "windows": [
+          {
+            "stableId": "window-1",
+            "address": "0xabc",
+            "pid": 100,
+            "startTimeTicks": "20"
+          }
+        ],
+        "prior": {
+          "window": {
+            "stableId": "window-1",
+            "address": "0xabc",
+            "pid": 100,
+            "startTimeTicks": "20"
+          },
+          "target": {
+            "identity": {
+              "machine": "osanwe",
+              "instanceId": "agent-instance-1",
+              "pid": 200,
+              "startTimeTicks": "42"
+            },
+            "location": {
+              "kind": "local"
+            }
+          },
+          "proof": {
+            "state": "complete",
+            "relation": "visible_exact",
+            "evidence": [
+              {
+                "code": "prior_complete",
+                "source": "caller",
+                "result": "informational"
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "status": "invalid",
+        "candidateCount": 0,
+        "reasonCode": "prior_relation_mismatch",
+        "exitCode": 2
+      }
+    },
+    {
+      "name": "revalidate-window-substitution-forbidden",
+      "request": {
+        "schema": "agent-window-resolver.request.v1",
+        "requestId": "fixture-revalidate-window",
+        "operation": "revalidate",
+        "requestedRelation": "visible_exact",
+        "target": {
+          "identity": {
+            "machine": "osanwe",
+            "instanceId": "agent-instance-1",
+            "pid": 200,
+            "startTimeTicks": "42"
+          }
+        },
+        "local": {
+          "machine": "osanwe"
+        },
+        "windows": [
+          {
+            "stableId": "window-2",
+            "address": "0xdef",
+            "pid": 101,
+            "startTimeTicks": "21"
+          }
+        ],
+        "prior": {
+          "window": {
+            "stableId": "window-1",
+            "address": "0xabc",
+            "pid": 100,
+            "startTimeTicks": "20"
+          },
+          "target": {
+            "identity": {
+              "machine": "osanwe",
+              "instanceId": "agent-instance-1",
+              "pid": 200,
+              "startTimeTicks": "42"
+            },
+            "location": {
+              "kind": "local"
+            }
+          },
+          "proof": {
+            "state": "complete",
+            "relation": "visible_exact",
+            "evidence": [
+              {
+                "code": "prior_complete",
+                "source": "caller",
+                "result": "informational"
+              }
+            ]
+          }
+        }
+      },
+      "expected": {
+        "status": "unresolved",
+        "candidateCount": 0,
+        "reasonCode": "prior_window_missing_or_changed",
+        "exitCode": 0
+      }
+    },
+    {
+      "name": "output-limit-does-not-truncate-ambiguity",
+      "request": {
+        "schema": "agent-window-resolver.request.v1",
+        "requestId": "fixture-output-limit",
+        "operation": "resolve",
+        "requestedRelation": "visible_exact",
+        "target": {
+          "identity": {
+            "machine": "osanwe",
+            "instanceId": "agent-instance-1",
+            "pid": 200,
+            "startTimeTicks": "42"
+          }
+        },
+        "local": {
+          "machine": "osanwe"
+        },
+        "windows": [
+          {
+            "stableId": "window-1",
+            "address": "0xabc",
+            "pid": 100,
+            "startTimeTicks": "20"
+          },
+          {
+            "stableId": "window-2",
+            "address": "0xdef",
+            "pid": 101,
+            "startTimeTicks": "21"
+          }
+        ],
+        "limits": {
+          "maxStdoutBytes": 4096
+        }
+      },
+      "injected": {
+        "qualifyingCandidateCount": 2,
+        "encodedFullResponseBytes": 5000
+      },
+      "expected": {
+        "status": "invalid",
+        "candidateCount": 0,
+        "reasonCode": "output_limit_exceeded",
+        "exitCode": 4,
+        "mustNotReturn": "matched"
+      }
+    }
+  ]
+}

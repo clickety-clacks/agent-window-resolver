@@ -1,0 +1,19 @@
+{
+  "description": "Sanitized command forms observed in Mike's duplicate 0_1_9 windows. Addresses, PIDs, and socket evidence are deliberately absent: these are name/transport hints, not exact proofs.",
+  "machine": "gibson",
+  "session": "0_1_9 (gibson-codex-ticket-patrol-20260908b)",
+  "windows": [
+    {
+      "title": "mosh",
+      "argv": ["/usr/bin/ghostty", "--gtk-single-instance=true", "-e", "mosh", "--", "gibson", "tmux", "attach-session", "-t", "0_1_9 (gibson-codex-ticket-patrol-20260908b)"]
+    },
+    {
+      "title": "mosh",
+      "argv": ["/usr/bin/ghostty", "-e", "mosh", "--", "gibson", "sh", "-lc", "exec tmux attach-session -t '=0_1_9 (gibson-codex-ticket-patrol-20260908b)'"]
+    },
+    {
+      "title": "mosh",
+      "argv": ["mosh-client", "-# -- gibson tmux attach-session -t 0_1_9 (gibson-codex-ticket-patrol-20260908b) |", "192.0.2.10", "60009"]
+    }
+  ]
+}

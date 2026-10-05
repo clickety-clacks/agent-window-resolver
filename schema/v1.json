@@ -1,0 +1,777 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-window-resolver.invalid/schema/v1.json",
+  "title": "Agent Window Resolver protocol v1",
+  "oneOf": [
+    { "$ref": "#/$defs/request" },
+    { "$ref": "#/$defs/response" }
+  ],
+  "$defs": {
+    "operation": {
+      "enum": ["resolve", "revalidate", "verify-target", "match"]
+    },
+    "requestId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
+    },
+    "machine": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*(?![\\s\\S])"
+    },
+    "pid": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4194304
+    },
+    "ticks": {
+      "type": "string",
+      "maxLength": 20,
+      "pattern": "^(0|[1-9][0-9]{0,19})(?![\\s\\S])"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["machine", "instanceId", "pid", "startTimeTicks"],
+      "properties": {
+        "machine": { "$ref": "#/$defs/machine" },
+        "instanceId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
+        },
+        "pid": { "$ref": "#/$defs/pid" },
+        "startTimeTicks": { "$ref": "#/$defs/ticks" }
+      }
+    },
+    "socket": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": { "const": "name" },
+            "value": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128,
+              "pattern": "^[^/\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "value"],
+          "properties": {
+            "kind": { "const": "path" },
+            "value": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 4096,
+              "pattern": "^/[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+            }
+          }
+        }
+      ]
+    },
+    "tmux": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["session", "windowIndex", "paneId"],
+      "properties": {
+        "session": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
+        },
+        "windowIndex": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]{0,8})(?![\\s\\S])"
+        },
+        "paneId": {
+          "type": "string",
+          "pattern": "^%[0-9]{1,12}(?![\\s\\S])"
+        },
+        "socket": { "$ref": "#/$defs/socket" }
+      }
+    },
+    "targetInput": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity"],
+      "properties": {
+        "identity": { "$ref": "#/$defs/identity" },
+        "tmux": { "$ref": "#/$defs/tmux" },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
+        }
+      }
+    },
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["stableId", "address", "pid", "startTimeTicks"],
+      "properties": {
+        "stableId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
+        },
+        "address": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{1,32}(?![\\s\\S])"
+        },
+        "pid": { "$ref": "#/$defs/pid" },
+        "startTimeTicks": { "$ref": "#/$defs/ticks" },
+        "class": {
+          "type": "string",
+          "maxLength": 256,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 512,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+        }
+      }
+    },
+    "location": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": { "kind": { "const": "local" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind", "tmux"],
+          "properties": {
+            "kind": { "const": "tmux" },
+            "tmux": { "$ref": "#/$defs/tmux" }
+          }
+        }
+      ]
+    },
+    "targetResult": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "location"],
+      "properties": {
+        "identity": { "$ref": "#/$defs/identity" },
+        "location": { "$ref": "#/$defs/location" }
+      }
+    },
+    "endpointSide": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["address", "port"],
+      "properties": {
+        "address": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 128
+        },
+        "port": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        }
+      }
+    },
+    "endpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol", "addressFamily", "local", "remote"],
+      "properties": {
+        "protocol": { "enum": ["tcp", "udp"] },
+        "addressFamily": { "enum": ["ipv4", "ipv6"] },
+        "local": { "$ref": "#/$defs/endpointSide" },
+        "remote": { "$ref": "#/$defs/endpointSide" }
+      }
+    },
+    "evidenceValue": {
+      "oneOf": [
+        {
+          "type": "string",
+          "maxLength": 512,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+        },
+        { "type": "integer" },
+        { "type": "boolean" },
+        { "$ref": "#/$defs/socket" },
+        { "$ref": "#/$defs/endpoint" }
+      ]
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "source", "result"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}(?![\\s\\S])"
+        },
+        "source": {
+          "enum": [
+            "caller",
+            "compositor",
+            "proc",
+            "argv",
+            "tmux",
+            "transport",
+            "socket",
+            "ssh_environment",
+            "roster"
+          ]
+        },
+        "result": {
+          "enum": ["supports", "contradicts", "unavailable", "informational"]
+        },
+        "details": {
+          "type": "object",
+          "maxProperties": 16,
+          "propertyNames": {
+            "pattern": "^[a-z][A-Za-z0-9]{0,63}(?![\\s\\S])"
+          },
+          "additionalProperties": { "$ref": "#/$defs/evidenceValue" }
+        }
+      }
+    },
+    "reason": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "source", "message", "retryable"],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}(?![\\s\\S])"
+        },
+        "source": {
+          "enum": [
+            "request",
+            "caller",
+            "compositor",
+            "proc",
+            "argv",
+            "tmux",
+            "transport",
+            "socket",
+            "ssh_environment",
+            "roster",
+            "dependency",
+            "internal"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "retryable": { "type": "boolean" }
+      }
+    },
+    "proof": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "relation", "evidence"],
+      "properties": {
+        "state": { "enum": ["complete", "partial"] },
+        "relation": {
+          "enum": ["visible_exact", "linked_client", "partial"]
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "items": { "$ref": "#/$defs/evidence" }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "state": { "const": "complete" } },
+            "required": ["state"]
+          },
+          "then": {
+            "properties": {
+              "relation": {
+                "enum": ["visible_exact", "linked_client"]
+              }
+            }
+          },
+          "else": {
+            "properties": { "relation": { "const": "partial" } }
+          }
+        }
+      ]
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["window", "target", "proof"],
+      "properties": {
+        "window": { "$ref": "#/$defs/window" },
+        "target": { "$ref": "#/$defs/targetResult" },
+        "proof": { "$ref": "#/$defs/proof" }
+      }
+    },
+    "match": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["confidence", "score", "evidence", "uncertainty"],
+      "properties": {
+        "confidence": { "enum": ["high", "medium", "low"] },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "items": { "$ref": "#/$defs/evidence" }
+        },
+        "uncertainty": {
+          "type": "array",
+          "maxItems": 128,
+          "items": { "$ref": "#/$defs/reason" }
+        }
+      }
+    },
+    "matchCandidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["window", "target", "match"],
+      "properties": {
+        "window": { "$ref": "#/$defs/window" },
+        "target": { "$ref": "#/$defs/targetResult" },
+        "match": { "$ref": "#/$defs/match" }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "deadlineMs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20000
+        },
+        "maxRequestBytes": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 262144
+        },
+        "maxStdoutBytes": {
+          "type": "integer",
+          "minimum": 4096,
+          "maximum": 1048576
+        },
+        "maxStderrBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16384
+        }
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "requestId",
+        "operation",
+        "target",
+        "local",
+        "windows"
+      ],
+      "properties": {
+        "schema": {
+          "const": "agent-window-resolver.request.v1"
+        },
+        "requestId": { "$ref": "#/$defs/requestId" },
+        "operation": { "$ref": "#/$defs/operation" },
+        "requestedRelation": {
+          "enum": ["visible_exact", "linked_client"]
+        },
+        "target": { "$ref": "#/$defs/targetInput" },
+        "local": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["machine"],
+          "properties": {
+            "machine": { "$ref": "#/$defs/machine" }
+          }
+        },
+        "windows": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": { "$ref": "#/$defs/window" }
+        },
+        "prior": {
+          "allOf": [
+            { "$ref": "#/$defs/candidate" },
+            {
+              "properties": {
+                "proof": {
+                  "properties": {
+                    "state": { "const": "complete" }
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "limits": { "$ref": "#/$defs/limits" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "operation": { "const": "resolve" } },
+            "required": ["operation"]
+          },
+          "then": {
+            "required": ["requestedRelation"],
+            "not": { "required": ["prior"] }
+          }
+        },
+        {
+          "if": {
+            "properties": { "operation": { "const": "revalidate" } },
+            "required": ["operation"]
+          },
+          "then": {
+            "required": ["requestedRelation", "prior"]
+          }
+        },
+        {
+          "if": {
+            "properties": { "operation": { "const": "match" } },
+            "required": ["operation"]
+          },
+          "then": {
+            "not": {
+              "anyOf": [
+                { "required": ["requestedRelation"] },
+                { "required": ["prior"] }
+              ]
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "operation": { "const": "verify-target" }
+            },
+            "required": ["operation"]
+          },
+          "then": {
+            "properties": { "windows": { "maxItems": 0 } },
+            "not": {
+              "anyOf": [
+                { "required": ["requestedRelation"] },
+                { "required": ["prior"] }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "verifiedTarget": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["identity", "location", "evidence"],
+      "properties": {
+        "identity": { "$ref": "#/$defs/identity" },
+        "location": { "$ref": "#/$defs/location" },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 128,
+          "items": { "$ref": "#/$defs/evidence" }
+        }
+      }
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "requestId",
+        "operation",
+        "status",
+        "candidates",
+        "evidence",
+        "reasons"
+      ],
+      "properties": {
+        "schema": {
+          "const": "agent-window-resolver.response.v1"
+        },
+        "requestId": {
+          "oneOf": [
+            { "$ref": "#/$defs/requestId" },
+            { "type": "null" }
+          ]
+        },
+        "operation": {
+          "oneOf": [
+            { "$ref": "#/$defs/operation" },
+            { "type": "null" }
+          ]
+        },
+        "requestedRelation": {
+          "enum": ["visible_exact", "linked_client"]
+        },
+        "status": {
+          "enum": [
+            "matched",
+            "ambiguous",
+            "unresolved",
+            "unreachable",
+            "invalid",
+            "verified"
+          ]
+        },
+        "candidates": {
+          "type": "array",
+          "maxItems": 4096,
+          "items": {
+            "oneOf": [
+              { "$ref": "#/$defs/candidate" },
+              { "$ref": "#/$defs/matchCandidate" }
+            ]
+          }
+        },
+        "verifiedTarget": {
+          "$ref": "#/$defs/verifiedTarget"
+        },
+        "evidence": {
+          "type": "array",
+          "maxItems": 256,
+          "items": { "$ref": "#/$defs/evidence" }
+        },
+        "reasons": {
+          "type": "array",
+          "maxItems": 128,
+          "items": { "$ref": "#/$defs/reason" }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "operation": { "const": "revalidate" }
+            },
+            "required": ["operation"]
+          },
+          "then": {
+            "properties": {
+              "status": {
+                "enum": ["matched", "unresolved", "unreachable", "invalid"]
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "allOf": [
+              {
+                "properties": {
+                  "operation": {
+                    "enum": ["resolve", "revalidate"]
+                  }
+                },
+                "required": ["operation"]
+              },
+              {
+                "properties": {
+                  "status": { "not": { "const": "invalid" } }
+                }
+              }
+            ]
+          },
+          "then": {
+            "required": ["requestedRelation"],
+            "not": { "required": ["verifiedTarget"] }
+          }
+        },
+        {
+          "if": {
+            "allOf": [
+              {
+                "properties": {
+                  "operation": { "const": "verify-target" }
+                },
+                "required": ["operation"]
+              },
+              {
+                "properties": {
+                  "status": { "not": { "const": "invalid" } }
+                }
+              }
+            ]
+          },
+          "then": {
+            "not": { "required": ["requestedRelation"] }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": { "const": "matched" }
+            },
+            "required": ["status"]
+          },
+          "then": {
+            "oneOf": [
+              {
+                "properties": {
+                  "operation": { "const": "match" },
+                  "candidates": {
+                    "minItems": 1,
+                    "items": { "$ref": "#/$defs/matchCandidate" }
+                  },
+                  "reasons": { "maxItems": 0 }
+                },
+                "required": ["operation", "candidates", "reasons"]
+              },
+              {
+                "properties": {
+                  "operation": { "enum": ["resolve", "revalidate"] },
+                  "candidates": {
+                    "minItems": 1,
+                    "maxItems": 1,
+                    "items": {
+                      "allOf": [
+                        { "$ref": "#/$defs/candidate" },
+                        {
+                          "properties": {
+                            "proof": {
+                              "properties": {
+                                "state": { "const": "complete" }
+                              }
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  },
+                  "reasons": { "maxItems": 0 }
+                },
+                "required": ["operation", "candidates", "reasons"]
+              }
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": { "const": "ambiguous" }
+            },
+            "required": ["status"]
+          },
+          "then": {
+            "properties": {
+              "operation": {
+                "enum": ["resolve", "revalidate"]
+              },
+              "candidates": {
+                "minItems": 2,
+                "items": {
+                  "allOf": [
+                    { "$ref": "#/$defs/candidate" },
+                    {
+                      "properties": {
+                        "proof": {
+                          "properties": {
+                            "state": { "const": "complete" }
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "reasons": { "minItems": 1 }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": ["unresolved", "unreachable", "invalid"]
+              }
+            },
+            "required": ["status"]
+          },
+          "then": {
+            "properties": {
+              "candidates": { "maxItems": 0 },
+              "reasons": { "minItems": 1 }
+            },
+            "not": { "required": ["verifiedTarget"] }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": { "const": "verified" }
+            },
+            "required": ["status"]
+          },
+          "then": {
+            "properties": {
+              "operation": { "const": "verify-target" },
+              "candidates": { "maxItems": 0 },
+              "reasons": { "maxItems": 0 }
+            },
+            "required": ["verifiedTarget"]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": { "not": { "const": "verified" } }
+            },
+            "required": ["status"]
+          },
+          "then": {
+            "not": { "required": ["verifiedTarget"] }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": { "not": { "const": "invalid" } }
+            },
+            "required": ["status"]
+          },
+          "then": {
+            "properties": {
+              "requestId": { "$ref": "#/$defs/requestId" },
+              "operation": { "$ref": "#/$defs/operation" }
+            }
+          },
+          "else": {
+            "properties": {
+              "candidates": { "maxItems": 0 }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

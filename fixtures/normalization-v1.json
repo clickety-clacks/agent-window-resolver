@@ -1,0 +1,227 @@
+{
+  "schema": "agent-window-resolver.normalization-fixtures.v1",
+  "ticks": [
+    {
+      "name": "zero",
+      "upstreamType": "string",
+      "input": "0",
+      "valid": true,
+      "normalized": "0"
+    },
+    {
+      "name": "positive",
+      "upstreamType": "string",
+      "input": "42",
+      "valid": true,
+      "normalized": "42"
+    },
+    {
+      "name": "leading-zero",
+      "upstreamType": "string",
+      "input": "00042",
+      "valid": false
+    },
+    {
+      "name": "exponent",
+      "upstreamType": "string",
+      "input": "4.2e1",
+      "valid": false
+    },
+    {
+      "name": "javascript-unsafe-number",
+      "upstreamType": "number",
+      "inputJson": "9007199254740993",
+      "valid": false
+    },
+    {
+      "name": "uint64-overflow",
+      "upstreamType": "string",
+      "input": "18446744073709551616",
+      "valid": false
+    }
+  ],
+  "addresses": [
+    {
+      "name": "ipv4",
+      "input": {
+        "addressFamily": "ipv4",
+        "address": "192.0.2.10"
+      },
+      "valid": true,
+      "normalized": {
+        "addressFamily": "ipv4",
+        "address": "192.0.2.10"
+      }
+    },
+    {
+      "name": "ipv6-compression",
+      "input": {
+        "addressFamily": "ipv6",
+        "address": "2001:0DB8:0:0:0:0:0:1"
+      },
+      "valid": true,
+      "normalized": {
+        "addressFamily": "ipv6",
+        "address": "2001:db8::1"
+      }
+    },
+    {
+      "name": "ipv4-mapped-ipv6",
+      "input": {
+        "addressFamily": "ipv6",
+        "address": "::FFFF:192.0.2.10"
+      },
+      "valid": true,
+      "normalized": {
+        "addressFamily": "ipv6",
+        "address": "::ffff:c000:20a"
+      },
+      "comparisonKey": "ipv4:c000020a",
+      "equalsCanonicalIpv4": true
+    },
+    {
+      "name": "link-local-scope",
+      "input": {
+        "addressFamily": "ipv6",
+        "address": "fe80:0:0:0:1::1%eth0"
+      },
+      "valid": true,
+      "normalized": {
+        "addressFamily": "ipv6",
+        "address": "fe80::1:0:0:1%eth0"
+      },
+      "scopeParticipatesInEquality": true
+    }
+  ],
+  "endpointLinks": [
+    {
+      "name": "reversed-complete-tuple",
+      "left": {
+        "protocol": "tcp",
+        "addressFamily": "ipv4",
+        "local": {
+          "address": "192.0.2.10",
+          "port": 52411
+        },
+        "remote": {
+          "address": "198.51.100.7",
+          "port": 22
+        }
+      },
+      "right": {
+        "protocol": "tcp",
+        "addressFamily": "ipv4",
+        "local": {
+          "address": "198.51.100.7",
+          "port": 22
+        },
+        "remote": {
+          "address": "192.0.2.10",
+          "port": 52411
+        }
+      },
+      "linked": true
+    },
+    {
+      "name": "zero-port-informational-only",
+      "left": {
+        "protocol": "tcp",
+        "addressFamily": "ipv4",
+        "local": {
+          "address": "0.0.0.0",
+          "port": 0
+        },
+        "remote": {
+          "address": "198.51.100.7",
+          "port": 22
+        }
+      },
+      "right": {
+        "protocol": "tcp",
+        "addressFamily": "ipv4",
+        "local": {
+          "address": "198.51.100.7",
+          "port": 22
+        },
+        "remote": {
+          "address": "0.0.0.0",
+          "port": 0
+        }
+      },
+      "schemaValid": false,
+      "linked": false
+    },
+    {
+      "name": "mapped-ipv6-equals-ipv4-key",
+      "left": {
+        "protocol": "tcp",
+        "addressFamily": "ipv6",
+        "local": {
+          "address": "::ffff:c000:20a",
+          "port": 52411
+        },
+        "remote": {
+          "address": "::ffff:c633:6407",
+          "port": 22
+        }
+      },
+      "right": {
+        "protocol": "tcp",
+        "addressFamily": "ipv4",
+        "local": {
+          "address": "198.51.100.7",
+          "port": 22
+        },
+        "remote": {
+          "address": "192.0.2.10",
+          "port": 52411
+        }
+      },
+      "linked": true
+    },
+    {
+      "name": "ports-alone-insufficient",
+      "left": {
+        "protocol": "tcp",
+        "addressFamily": "ipv4",
+        "local": {
+          "address": "192.0.2.10",
+          "port": 52411
+        },
+        "remote": {
+          "address": "198.51.100.7",
+          "port": 22
+        }
+      },
+      "right": {
+        "protocol": "tcp",
+        "addressFamily": "ipv4",
+        "local": {
+          "address": "203.0.113.9",
+          "port": 22
+        },
+        "remote": {
+          "address": "192.0.2.99",
+          "port": 52411
+        }
+      },
+      "linked": false
+    }
+  ],
+  "tmuxSockets": [
+    {
+      "input": {
+        "kind": "name",
+        "value": "agents"
+      },
+      "argv": ["-L", "agents"]
+    },
+    {
+      "input": {
+        "kind": "path",
+        "value": "/run/user/1000/tmux.sock"
+      },
+      "argv": ["-S", "/run/user/1000/tmux.sock"]
+    }
+  ]
+}

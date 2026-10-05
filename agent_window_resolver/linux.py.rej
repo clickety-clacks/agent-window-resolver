@@ -1,0 +1,23 @@
+--- agent_window_resolver/linux.py
++++ agent_window_resolver/linux.py
+@@ -831,10 +831,20 @@
+         for endpoint in endpoints:
+             if not all(1 <= port <= 65535 for port in (
+                 endpoint.local_port, endpoint.remote_port,
+             )):
+                 continue
+             try:
+                 local = ipaddress.ip_address(endpoint.local_address)
+                 remote = ipaddress.ip_address(endpoint.remote_address)
+             except ValueError:
++                continue
++            if (local.version == remote.version
++                    and not local.is_unspecified
++                    and not remote.is_unspecified):
++                qualifying = True
++                break
++        else:
++            qualifying = False
++        return qualifying and len(endpoints) == 1
++
+     def parse_target_output(

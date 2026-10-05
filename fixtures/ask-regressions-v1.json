@@ -1,0 +1,1248 @@
+{
+  "schema": "agent-window-resolver.ask-regressions.v1",
+  "identities": {
+    "root": {
+      "machine": "osanwe",
+      "pid": 100,
+      "startTimeTicks": "1000"
+    },
+    "target": {
+      "machine": "osanwe",
+      "pid": 500,
+      "startTimeTicks": "5000"
+    },
+    "reused": {
+      "machine": "osanwe",
+      "pid": 500,
+      "startTimeTicks": "4999"
+    },
+    "remote": {
+      "machine": "plumbus",
+      "pid": 500,
+      "startTimeTicks": "5000"
+    },
+    "localShadow": {
+      "machine": "osanwe",
+      "pid": 500,
+      "startTimeTicks": "5000"
+    },
+    "paneRoot": {
+      "machine": "osanwe",
+      "pid": 110,
+      "startTimeTicks": "1100"
+    },
+    "rootA": {
+      "machine": "osanwe",
+      "pid": 101,
+      "startTimeTicks": "1001"
+    },
+    "rootB": {
+      "machine": "osanwe",
+      "pid": 102,
+      "startTimeTicks": "1002"
+    },
+    "incompleteRoot": {
+      "machine": "osanwe",
+      "pid": 103,
+      "startTimeTicks": "1003"
+    },
+    "priorRoot": {
+      "machine": "osanwe",
+      "pid": 104,
+      "startTimeTicks": "1004"
+    },
+    "substituteRoot": {
+      "machine": "osanwe",
+      "pid": 105,
+      "startTimeTicks": "1005"
+    }
+  },
+  "processes": {
+    "root": {
+      "identity": "root",
+      "parent": null,
+      "argv": [
+        "foot"
+      ]
+    },
+    "target": {
+      "identity": "target",
+      "parent": "root",
+      "argv": [
+        "agent"
+      ]
+    },
+    "reusedRoot": {
+      "identity": "root",
+      "parent": null,
+      "argv": [
+        "foot"
+      ]
+    },
+    "reused": {
+      "identity": "reused",
+      "parent": "root",
+      "argv": [
+        "old-agent"
+      ]
+    },
+    "paneRoot": {
+      "identity": "paneRoot",
+      "parent": null,
+      "argv": [
+        "foot"
+      ]
+    },
+    "paneTarget": {
+      "identity": "target",
+      "parent": "paneRoot",
+      "argv": [
+        "agent"
+      ]
+    },
+    "rootA": {
+      "identity": "rootA",
+      "parent": null,
+      "argv": [
+        "foot"
+      ]
+    },
+    "targetA": {
+      "identity": "target",
+      "parent": "rootA",
+      "argv": [
+        "agent"
+      ]
+    },
+    "rootB": {
+      "identity": "rootB",
+      "parent": null,
+      "argv": [
+        "foot"
+      ]
+    },
+    "targetB": {
+      "identity": "target",
+      "parent": "rootB",
+      "argv": [
+        "agent"
+      ]
+    },
+    "remoteRoot": {
+      "identity": "root",
+      "parent": null,
+      "argv": [
+        "foot"
+      ]
+    },
+    "remote": {
+      "identity": "remote",
+      "parent": null,
+      "argv": [
+        "agent"
+      ]
+    },
+    "localShadow": {
+      "identity": "localShadow",
+      "parent": "root",
+      "argv": [
+        "unrelated"
+      ]
+    },
+    "incompleteRoot": {
+      "identity": "incompleteRoot",
+      "parent": null,
+      "argv": [
+        "foot"
+      ]
+    },
+    "incompleteTarget": {
+      "identity": "target",
+      "parent": "incompleteRoot",
+      "argv": [
+        "agent"
+      ]
+    },
+    "priorRoot": {
+      "identity": "priorRoot",
+      "parent": null,
+      "argv": [
+        "old-foot"
+      ]
+    },
+    "substituteRoot": {
+      "identity": "substituteRoot",
+      "parent": null,
+      "argv": [
+        "new-foot"
+      ]
+    },
+    "substituteTarget": {
+      "identity": "target",
+      "parent": "substituteRoot",
+      "argv": [
+        "agent"
+      ]
+    }
+  },
+  "graphCases": [
+    {
+      "name": "direct-local-tree-match",
+      "request": {
+        "schema": "agent-window-resolver.request.v1",
+        "requestId": "ask-direct",
+        "operation": "resolve",
+        "requestedRelation": "visible_exact",
+        "target": {
+          "identity": {
+            "machine": "OSANWE.",
+            "instanceId": "local-roster",
+            "pid": 500,
+            "startTimeTicks": "5000"
+          }
+        },
+        "local": {
+          "machine": "osanwe"
+        },
+        "windows": [
+          {
+            "stableId": "direct",
+            "address": "0x101",
+            "pid": 100,
+            "startTimeTicks": "1000"
+          }
+        ]
+      },
+      "snapshot": {
+        "windows": [
+          {
+            "window": {
+              "stableId": "direct",
+              "address": "0x101",
+              "pid": 100,
+              "startTimeTicks": "1000"
+            },
+            "processes": [
+              "root",
+              "target"
+            ]
+          }
+        ],
+        "target": {
+          "machine": "osanwe",
+          "socket": null,
+          "actualSocketPath": null,
+          "processes": [
+            "target"
+          ],
+          "pane": null,
+          "clients": []
+        }
+      },
+      "expected": {
+        "status": "matched",
+        "candidateCount": 1
+      }
+    },
+    {
+      "name": "pid-reuse-does-not-match-start-ticks",
+      "request": {
+        "schema": "agent-window-resolver.request.v1",
+        "requestId": "ask-reuse",
+        "operation": "resolve",
+        "requestedRelation": "visible_exact",
+        "target": {
+          "identity": {
+            "machine": "osanwe",
+            "instanceId": "reuse-roster",
+            "pid": 500,
+            "startTimeTicks": "5000"
+          }
+        },
+        "local": {
+          "machine": "osanwe"
+        },
+        "windows": [
+          {
+            "stableId": "reuse",
+            "address": "0x102",
+            "pid": 100,
+            "startTimeTicks": "1000"
+          }
+        ]
+      },
+      "snapshot": {
+        "windows": [
+          {
+            "window": {
+              "stableId": "reuse",
+              "address": "0x102",
+              "pid": 100,
+              "startTimeTicks": "1000"
+            },
+            "processes": [
+              "reusedRoot",
+              "reused"
+            ]
+          }
+        ],
+        "target": {
+          "machine": "osanwe",
+          "socket": null,
+          "actualSocketPath": null,
+          "processes": [
+            "target"
+          ],
+          "pane": null,
+          "clients": []
+        }
+      },
+      "expected": {
+        "status": "unresolved",
+        "candidateCount": 0,
+        "reasonCode": "candidate_count"
+      }
+    },
+    {
+      "name": "wrong-tmux-pane-does-not-prove-target",
+      "request": {
+        "schema": "agent-window-resolver.request.v1",
+        "requestId": "ask-pane",
+        "operation": "resolve",
+        "requestedRelation": "visible_exact",
+        "target": {
+          "identity": {
+            "machine": "osanwe",
+            "instanceId": "pane-roster",
+            "pid": 500,
+            "startTimeTicks": "5000"
+          },
+          "tmux": {
+            "session": "agents",
+            "windowIndex": "1",
+            "paneId": "%7",
+            "socket": {
+              "kind": "path",
+              "value": "/run/user/1000/tmux.sock"
+            }
+          }
+        },
+        "local": {
+          "machine": "osanwe"
+        },
+        "windows": [
+          {
+            "stableId": "pane",
+            "address": "0x103",
+            "pid": 110,
+            "startTimeTicks": "1100"
+          }
+        ]
+      },
+      "snapshot": {
+        "windows": [
+          {
+            "window": {
+              "stableId": "pane",
+              "address": "0x103",
+              "pid": 110,
+              "startTimeTicks": "1100"
+            },
+            "processes": [
+              "paneRoot",
+              "paneTarget"
+            ]
+          }
+        ],
+        "target": {
+          "machine": "osanwe",
+          "socket": {
+            "kind": "path",
+            "value": "/run/user/1000/tmux.sock"
+          },
+          "actualSocketPath": "/run/user/1000/tmux.sock",
+          "processes": [
+            "target"
+          ],
+          "pane": {
+            "session": "agents",
+            "windowIndex": "2",
+            "paneId": "%8",
+            "process": "target"
+          },
+          "clients": []
+        }
+      },
+      "expected": {
+        "status": "unresolved",
+        "candidateCount": 0,
+        "reasonCode": "pane_membership_mismatch"
+      }
+    },
+    {
+      "name": "two-qualifying-windows-are-ambiguous",
+      "request": {
+        "schema": "agent-window-resolver.request.v1",
+        "requestId": "ask-ambiguous",
+        "operation": "resolve",
+        "requestedRelation": "visible_exact",
+        "target": {
+          "identity": {
+            "machine": "osanwe",
+            "instanceId": "ambiguous-roster",
+            "pid": 500,
+            "startTimeTicks": "5000"
+          }
+        },
+        "local": {
+          "machine": "osanwe"
+        },
+        "windows": [
+          {
+            "stableId": "a",
+            "address": "0x104",
+            "pid": 101,
+            "startTimeTicks": "1001"
+          },
+          {
+            "stableId": "b",
+            "address": "0x105",
+            "pid": 102,
+            "startTimeTicks": "1002"
+          }
+        ]
+      },
+      "snapshot": {
+        "windows": [
+          {
+            "window": {
+              "stableId": "a",
+              "address": "0x104",
+              "pid": 101,
+              "startTimeTicks": "1001"
+            },
+            "processes": [
+              "rootA",
+              "targetA"
+            ]
+          },
+          {
+            "window": {
+              "stableId": "b",
+              "address": "0x105",
+              "pid": 102,
+              "startTimeTicks": "1002"
+            },
+            "processes": [
+              "rootB",
+              "targetB"
+            ]
+          }
+        ],
+        "target": {
+          "machine": "osanwe",
+          "socket": null,
+          "actualSocketPath": null,
+          "processes": [
+            "target"
+          ],
+          "pane": null,
+          "clients": []
+        }
+      },
+      "expected": {
+        "status": "ambiguous",
+        "candidateCount": 2,
+        "reasonCode": "candidate_count"
+      }
+    },
+    {
+      "name": "same-pid-and-ticks-on-another-machine-do-not-match",
+      "request": {
+        "schema": "agent-window-resolver.request.v1",
+        "requestId": "ask-machine",
+        "operation": "resolve",
+        "requestedRelation": "visible_exact",
+        "target": {
+          "identity": {
+            "machine": "plumbus",
+            "instanceId": "remote-roster",
+            "pid": 500,
+            "startTimeTicks": "5000"
+          }
+        },
+        "local": {
+          "machine": "osanwe"
+        },
+        "windows": [
+          {
+            "stableId": "remote-shaped",
+            "address": "0x106",
+            "pid": 100,
+            "startTimeTicks": "1000"
+          }
+        ]
+      },
+      "snapshot": {
+        "windows": [
+          {
+            "window": {
+              "stableId": "remote-shaped",
+              "address": "0x106",
+              "pid": 100,
+              "startTimeTicks": "1000"
+            },
+            "processes": [
+              "remoteRoot",
+              "localShadow"
+            ]
+          }
+        ],
+        "target": {
+          "machine": "plumbus",
+          "socket": null,
+          "actualSocketPath": null,
+          "processes": [
+            "remote"
+          ],
+          "pane": null,
+          "clients": []
+        }
+      },
+      "expected": {
+        "status": "unresolved",
+        "candidateCount": 0,
+        "reasonCode": "candidate_count"
+      }
+    },
+    {
+      "name": "incomplete-window-scan-cannot-prove-unique-match",
+      "request": {
+        "schema": "agent-window-resolver.request.v1",
+        "requestId": "ask-incomplete",
+        "operation": "resolve",
+        "requestedRelation": "visible_exact",
+        "target": {
+          "identity": {
+            "machine": "osanwe",
+            "instanceId": "incomplete-roster",
+            "pid": 500,
+            "startTimeTicks": "5000"
+          }
+        },
+        "local": {
+          "machine": "osanwe"
+        },
+        "windows": [
+          {
+            "stableId": "incomplete",
+            "address": "0x107",
+            "pid": 103,
+            "startTimeTicks": "1003"
+          }
+        ]
+      },
+      "snapshot": {
+        "windows": [
+          {
+            "window": {
+              "stableId": "incomplete",
+              "address": "0x107",
+              "pid": 103,
+              "startTimeTicks": "1003"
+            },
+            "collectionState": "partial",
+            "errors": [
+              {
+                "code": "proc_read_failed",
+                "source": "proc",
+                "message": "child scan was cut off",
+                "retryable": true
+              }
+            ],
+            "processes": [
+              "incompleteRoot",
+              "incompleteTarget"
+            ]
+          }
+        ],
+        "target": {
+          "machine": "osanwe",
+          "socket": null,
+          "actualSocketPath": null,
+          "processes": [
+            "target"
+          ],
+          "pane": null,
+          "clients": []
+        }
+      },
+      "expected": {
+        "status": "unresolved",
+        "candidateCount": 0,
+        "reasonCode": "proc_read_failed"
+      }
+    },
+    {
+      "name": "revalidate-requires-exact-prior-window-identity",
+      "request": {
+        "schema": "agent-window-resolver.request.v1",
+        "requestId": "ask-prior-moved",
+        "operation": "revalidate",
+        "requestedRelation": "visible_exact",
+        "target": {
+          "identity": {
+            "machine": "osanwe",
+            "instanceId": "prior-roster",
+            "pid": 500,
+            "startTimeTicks": "5000"
+          }
+        },
+        "local": {
+          "machine": "osanwe"
+        },
+        "windows": [
+          {
+            "stableId": "prior",
+            "address": "0x109",
+            "pid": 104,
+            "startTimeTicks": "1004"
+          }
+        ],
+        "prior": {
+          "window": {
+            "stableId": "prior",
+            "address": "0x108",
+            "pid": 104,
+            "startTimeTicks": "1004"
+          },
+          "target": {
+            "identity": {
+              "machine": "osanwe",
+              "instanceId": "prior-roster",
+              "pid": 500,
+              "startTimeTicks": "5000"
+            },
+            "location": {
+              "kind": "local"
+            }
+          },
+          "proof": {
+            "state": "complete",
+            "relation": "visible_exact",
+            "evidence": [
+              {
+                "code": "prior_complete",
+                "source": "caller",
+                "result": "informational"
+              }
+            ]
+          }
+        }
+      },
+      "snapshot": {
+        "windows": [],
+        "target": {
+          "machine": "osanwe",
+          "socket": null,
+          "actualSocketPath": null,
+          "processes": [],
+          "pane": null,
+          "clients": []
+        }
+      },
+      "expected": {
+        "status": "unresolved",
+        "candidateCount": 0,
+        "reasonCode": "prior_window_missing_or_changed"
+      }
+    },
+    {
+      "name": "revalidate-does-not-substitute-another-window",
+      "request": {
+        "schema": "agent-window-resolver.request.v1",
+        "requestId": "ask-prior-substitution",
+        "operation": "revalidate",
+        "requestedRelation": "visible_exact",
+        "target": {
+          "identity": {
+            "machine": "osanwe",
+            "instanceId": "substitution-roster",
+            "pid": 500,
+            "startTimeTicks": "5000"
+          }
+        },
+        "local": {
+          "machine": "osanwe"
+        },
+        "windows": [
+          {
+            "stableId": "prior",
+            "address": "0x10a",
+            "pid": 104,
+            "startTimeTicks": "1004"
+          },
+          {
+            "stableId": "substitute",
+            "address": "0x10b",
+            "pid": 105,
+            "startTimeTicks": "1005"
+          }
+        ],
+        "prior": {
+          "window": {
+            "stableId": "prior",
+            "address": "0x10a",
+            "pid": 104,
+            "startTimeTicks": "1004"
+          },
+          "target": {
+            "identity": {
+              "machine": "osanwe",
+              "instanceId": "substitution-roster",
+              "pid": 500,
+              "startTimeTicks": "5000"
+            },
+            "location": {
+              "kind": "local"
+            }
+          },
+          "proof": {
+            "state": "complete",
+            "relation": "visible_exact",
+            "evidence": [
+              {
+                "code": "prior_complete",
+                "source": "caller",
+                "result": "informational"
+              }
+            ]
+          }
+        }
+      },
+      "snapshot": {
+        "windows": [
+          {
+            "window": {
+              "stableId": "prior",
+              "address": "0x10a",
+              "pid": 104,
+              "startTimeTicks": "1004"
+            },
+            "processes": [
+              "priorRoot"
+            ]
+          },
+          {
+            "window": {
+              "stableId": "substitute",
+              "address": "0x10b",
+              "pid": 105,
+              "startTimeTicks": "1005"
+            },
+            "processes": [
+              "substituteRoot",
+              "substituteTarget"
+            ]
+          }
+        ],
+        "target": {
+          "machine": "osanwe",
+          "socket": null,
+          "actualSocketPath": null,
+          "processes": [
+            "target"
+          ],
+          "pane": null,
+          "clients": []
+        }
+      },
+      "expected": {
+        "status": "unresolved",
+        "candidateCount": 0,
+        "reasonCode": "prior_relation_no_longer_proven"
+      }
+    }
+  ],
+  "rawIoCases": [
+    {
+      "name": "mosh-session-only",
+      "layer": "documentation_only",
+      "transport": "mosh",
+      "argv": [
+        "/usr/bin/mosh",
+        "plumbus",
+        "tmux",
+        "attach",
+        "-t",
+        "agents"
+      ],
+      "probe": {
+        "readBytes": [
+          {
+            "path": "/proc/700/environ",
+            "maxBytes": 4096,
+            "data": ""
+          }
+        ],
+        "readlink": [
+          {
+            "path": "/proc/700/fd/0",
+            "maxChars": 256,
+            "result": "/dev/pts/7"
+          }
+        ],
+        "listdir": [],
+        "run": [
+          {
+            "argv": [
+              "tmux",
+              "display-message",
+              "-p",
+              "#{socket_path}"
+            ],
+            "timeout": "deadline.remaining",
+            "maxStdout": 4096,
+            "maxStderr": 1024,
+            "env": {
+              "TMUX_TMPDIR": "/run/user/1000"
+            },
+            "result": {
+              "returncode": 0,
+              "stdout": "/run/user/1000/tmux.sock\n",
+              "stderr": ""
+            }
+          }
+        ]
+      },
+      "expected": {
+        "status": "not_executed"
+      }
+    },
+    {
+      "name": "ssh-full-tuple-with-environment-fallback",
+      "layer": "documentation_only",
+      "transport": "ssh",
+      "argv": [
+        "/usr/bin/ssh",
+        "-o",
+        "BatchMode=yes",
+        "plumbus",
+        "tmux",
+        "attach",
+        "-t",
+        "agents"
+      ],
+      "probe": {
+        "readBytes": [
+          {
+            "path": "/proc/net/tcp",
+            "maxBytes": 65536,
+            "data": " sl local_address rem_address st\n 0: 0A00020F:CCFB C6336407:0016 01 00000000:00000000 01:00000014 00000000 701 0 12345 1 0000000000000000 100 0 0 10 0\n"
+          },
+          {
+            "path": "/proc/701/environ",
+            "maxBytes": 4096,
+            "data": "PATH=/usr/bin\u0000SSH_CONNECTION=192.0.2.10 52411 198.51.100.7 22\u0000"
+          }
+        ],
+        "readlink": [
+          {
+            "path": "/proc/701/fd/0",
+            "maxChars": 256,
+            "result": "/dev/pts/8"
+          }
+        ],
+        "listdir": [],
+        "run": [
+          {
+            "argv": [
+              "tmux",
+              "-S",
+              "/run/user/1000/tmux.sock",
+              "display-message",
+              "-p",
+              "#{socket_path}"
+            ],
+            "timeout": "deadline.remaining",
+            "maxStdout": 4096,
+            "maxStderr": 1024,
+            "env": {
+              "TMUX_TMPDIR": "/run/user/1000"
+            },
+            "result": {
+              "returncode": 0,
+              "stdout": "/run/user/1000/tmux.sock\n",
+              "stderr": ""
+            }
+          }
+        ]
+      },
+      "expected": {
+        "status": "not_executed"
+      }
+    }
+  ],
+  "remoteJsonCases": [
+    {
+      "name": "ssh-target-json-consumer",
+      "layer": "remote_json_consumer",
+      "payload": {
+        "socketPath": "/run/user/1000/tmux.sock",
+        "pane": {
+          "session": "agents",
+          "windowIndex": "1",
+          "paneId": "%7",
+          "process": {
+            "pid": 500,
+            "ticks": "5000",
+            "parent": null,
+            "argv": [
+              "agent"
+            ],
+            "endpoints": [],
+            "sshEndpoints": []
+          }
+        },
+        "processes": [
+          {
+            "pid": 500,
+            "ticks": "5000",
+            "parent": null,
+            "argv": [
+              "agent"
+            ],
+            "endpoints": [],
+            "sshEndpoints": []
+          }
+        ],
+        "clients": []
+      },
+      "expected": {
+        "socket": "path",
+        "identitySource": "remote_payload",
+        "endpointSource": "remote_payload"
+      }
+    }
+  ],
+  "trueRemoteParser": {
+    "status": "not_covered_by_reserved_tests",
+    "reason": "reserved cases parse captured raw JSON only; they do not run ProbeIO, SSH, tmux, an existing window, or a live mosh-client"
+  },
+  "rawParserCases": {
+    "moshProcessBundle": [
+      {
+        "pid": 701,
+        "parentPid": 703,
+        "statBefore": "NzAxIChtb3NoLWNsaWVudCkgUyA3MDMgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDcwMTA=",
+        "statAfter": "NzAxIChtb3NoLWNsaWVudCkgUyA3MDMgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDcwMTA=",
+        "tty": "/dev/pts/7",
+        "cmdlineBefore": "L3Vzci9iaW4vbW9zaC1jbGllbnQAMTkyLjAuMi4xMAA2MDAwMAA=",
+        "cmdlineAfter": "L3Vzci9iaW4vbW9zaC1jbGllbnQAMTkyLjAuMi4xMAA2MDAwMAA=",
+        "environmentBefore": "",
+        "environmentAfter": "",
+        "fdInodesBefore": [
+          "54321"
+        ],
+        "fdInodesAfter": [
+          "54321"
+        ],
+        "netLinesBefore": {
+          "tcp": [],
+          "tcp6": [],
+          "udp": [
+            "ICAwOiAwQTAyMDBDMDpFQTYwIDA3NjQzM0M2OkVBNjEgMDEgMDAwMDAwMDA6MDAwMDAwMDAgMDE6MDAwMDAwMTQgMDAwMDAwMDAgNzAxIDAgNTQzMjEgMSAwMDAwMDAwMDAwMDAwMDAwIDEwMCAwIDAgMTAgMA=="
+          ],
+          "udp6": []
+        },
+        "netLinesAfter": {
+          "tcp": [],
+          "tcp6": [],
+          "udp": [
+            "ICAwOiAwQTAyMDBDMDpFQTYwIDA3NjQzM0M2OkVBNjEgMDEgMDAwMDAwMDA6MDAwMDAwMDAgMDE6MDAwMDAwMTQgMDAwMDAwMDAgNzAxIDAgNTQzMjEgMSAwMDAwMDAwMDAwMDAwMDAwIDEwMCAwIDAgMTAgMA=="
+          ],
+          "udp6": []
+        }
+      },
+      {
+        "pid": 703,
+        "parentPid": 700,
+        "statBefore": "NzAzIChiYXNoKSBTIDcwMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgNzAzMA==",
+        "statAfter": "NzAzIChiYXNoKSBTIDcwMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgNzAzMA==",
+        "tty": "/dev/pts/7",
+        "cmdlineBefore": "L3Vzci9iaW4vYmFzaAA=",
+        "cmdlineAfter": "L3Vzci9iaW4vYmFzaAA=",
+        "environmentBefore": "",
+        "environmentAfter": "",
+        "fdInodesBefore": [],
+        "fdInodesAfter": [],
+        "netLinesBefore": {
+          "tcp": [],
+          "tcp6": [],
+          "udp": [],
+          "udp6": []
+        },
+        "netLinesAfter": {
+          "tcp": [],
+          "tcp6": [],
+          "udp": [],
+          "udp6": []
+        }
+      },
+      {
+        "pid": 700,
+        "parentPid": 1,
+        "statBefore": "NzAwIChmb290KSBTIDEgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDcwMDA=",
+        "statAfter": "NzAwIChmb290KSBTIDEgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDcwMDA=",
+        "tty": "/dev/pts/7",
+        "cmdlineBefore": "L3Vzci9iaW4vZm9vdAA=",
+        "cmdlineAfter": "L3Vzci9iaW4vZm9vdAA=",
+        "environmentBefore": "",
+        "environmentAfter": "",
+        "fdInodesBefore": [],
+        "fdInodesAfter": [],
+        "netLinesBefore": {
+          "tcp": [],
+          "tcp6": [],
+          "udp": [],
+          "udp6": []
+        },
+        "netLinesAfter": {
+          "tcp": [],
+          "tcp6": [],
+          "udp": [],
+          "udp6": []
+        }
+      }
+    ],
+    "sshProcessBundle": [
+      {
+        "pid": 702,
+        "parentPid": 1,
+        "statBefore": "NzAyIChzc2gpIFMgMSAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgNzAyMA",
+        "statAfter": "NzAyIChzc2gpIFMgMSAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgNzAyMA",
+        "tty": "/dev/pts/8",
+        "cmdlineBefore": "L3Vzci9iaW4vc3NoAHBsdW1idXMAdG11eABhdHRhY2gALXQAYWdlbnRzAA==",
+        "cmdlineAfter": "L3Vzci9iaW4vc3NoAHBsdW1idXMAdG11eABhdHRhY2gALXQAYWdlbnRzAA==",
+        "environmentBefore": "",
+        "environmentAfter": "",
+        "fdInodesBefore": [
+          "12345"
+        ],
+        "fdInodesAfter": [
+          "12345"
+        ],
+        "netLinesBefore": {
+          "tcp": [
+            "ICAwOiAwQTAyMDBDMDpDQ0JCIDA3NjQzM0M2OjAwMTYgMDEgMDAwMDAwMDA6MDAwMDAwMDAgMDE6MDAwMDAwMTQgMDAwMDAwMDAgNzAxIDAgMTIzNDUgMSAwMDAwMDAwMDAwMDAwMDAwIDEwMCAwIDAgMTAgMA=="
+          ],
+          "tcp6": [],
+          "udp": [],
+          "udp6": []
+        },
+        "netLinesAfter": {
+          "tcp": [
+            "ICAwOiAwQTAyMDBDMDpDQ0JCIDA3NjQzM0M2OjAwMTYgMDEgMDAwMDAwMDA6MDAwMDAwMDAgMDE6MDAwMDAwMTQgMDAwMDAwMDAgNzAxIDAgMTIzNDUgMSAwMDAwMDAwMDAwMDAwMDAwIDEwMCAwIDAgMTAgMA=="
+          ],
+          "tcp6": [],
+          "udp": [],
+          "udp6": []
+        }
+      }
+    ],
+    "targetRequest": {
+      "schema": "agent-window-resolver.request.v1",
+      "requestId": "ask-raw-ssh",
+      "operation": "resolve",
+      "requestedRelation": "visible_exact",
+      "target": {
+        "identity": {
+          "machine": "plumbus",
+          "instanceId": "raw-remote",
+          "pid": 500,
+          "startTimeTicks": "5000"
+        },
+        "tmux": {
+          "session": "agents",
+          "windowIndex": "1",
+          "paneId": "%7",
+          "socket": {
+            "kind": "path",
+            "value": "/run/user/1000/tmux.sock"
+          }
+        }
+      },
+      "local": {
+        "machine": "osanwe"
+      },
+      "windows": [
+        {
+          "stableId": "raw-ssh-window",
+          "address": "0x201",
+          "pid": 702,
+          "startTimeTicks": "7020"
+        }
+      ]
+    },
+    "targetOutputTemplate": {
+      "paneProcess": {
+        "pid": 500,
+        "parentPid": 1,
+        "statBefore": "NTAwIChhZ2VudCkgUyAxIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCA1MDAw",
+        "statAfter": "NTAwIChhZ2VudCkgUyAxIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCA1MDAw",
+        "tty": "",
+        "cmdlineBefore": "L3Vzci9iaW4vYWdlbnQA",
+        "cmdlineAfter": "L3Vzci9iaW4vYWdlbnQA",
+        "environmentBefore": "",
+        "environmentAfter": "",
+        "fdInodesBefore": [],
+        "fdInodesAfter": [],
+        "netLinesBefore": {
+          "tcp": [],
+          "tcp6": [],
+          "udp": [],
+          "udp6": []
+        },
+        "netLinesAfter": {
+          "tcp": [],
+          "tcp6": [],
+          "udp": [],
+          "udp6": []
+        }
+      },
+      "processes": [
+        {
+          "pid": 500,
+          "parentPid": 1,
+          "statBefore": "NTAwIChhZ2VudCkgUyAxIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCA1MDAw",
+          "statAfter": "NTAwIChhZ2VudCkgUyAxIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCA1MDAw",
+          "tty": "",
+          "cmdlineBefore": "L3Vzci9iaW4vYWdlbnQA",
+          "cmdlineAfter": "L3Vzci9iaW4vYWdlbnQA",
+          "environmentBefore": "",
+          "environmentAfter": "",
+          "fdInodesBefore": [],
+          "fdInodesAfter": [],
+          "netLinesBefore": {
+            "tcp": [],
+            "tcp6": [],
+            "udp": [],
+            "udp6": []
+          },
+          "netLinesAfter": {
+            "tcp": [],
+            "tcp6": [],
+            "udp": [],
+            "udp6": []
+          }
+        }
+      ],
+      "clients": [],
+      "socketPathBefore": "/run/user/1000/tmux.sock",
+      "socketPathAfter": "/run/user/1000/tmux.sock",
+      "paneLineBefore": "agents\t1\t%7\t500",
+      "paneLineAfter": "agents\t1\t%7\t500",
+      "clientLinesBefore": [],
+      "clientLinesAfter": []
+    },
+    "sshRemoteClient": {
+      "line": "ssh-client\t800\tagents\t1\t%7",
+      "processes": [
+        {
+          "pid": 800,
+          "parentPid": 1,
+          "statBefore": "ODAwICh0bXV4LWNsaWVudCkgUyAxIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCA4MDAw",
+          "statAfter": "ODAwICh0bXV4LWNsaWVudCkgUyAxIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCA4MDAw",
+          "tty": "/dev/pts/8",
+          "cmdlineBefore": "L3Vzci9iaW4vdG11eABhdHRhY2gtc2Vzc2lvbgAtdABhZ2VudHMA",
+          "cmdlineAfter": "L3Vzci9iaW4vdG11eABhdHRhY2gtc2Vzc2lvbgAtdABhZ2VudHMA",
+          "environmentBefore": "U1NIX0NPTk5FQ1RJT049MTkyLjAuMi4xMCA1MjQxMSAxOTguNTEuMTAwLjcgMjIA",
+          "environmentAfter": "U1NIX0NPTk5FQ1RJT049MTkyLjAuMi4xMCA1MjQxMSAxOTguNTEuMTAwLjcgMjIA",
+          "fdInodesBefore": [],
+          "fdInodesAfter": [],
+          "netLinesBefore": {
+            "tcp": [],
+            "tcp6": [],
+            "udp": [],
+            "udp6": []
+          },
+          "netLinesAfter": {
+            "tcp": [],
+            "tcp6": [],
+            "udp": [],
+            "udp6": []
+          }
+        }
+      ]
+    },
+    "moshRemoteClient": {
+      "line": "mosh-client\t800\tagents\t1\t%7",
+      "processes": [
+        {
+          "pid": 800,
+          "parentPid": 801,
+          "statBefore": "ODAwICh0bXV4LWNsaWVudCkgUyA4MDEgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDgwMDA=",
+          "statAfter": "ODAwICh0bXV4LWNsaWVudCkgUyA4MDEgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDgwMDA=",
+          "tty": "/dev/pts/7",
+          "cmdlineBefore": "L3Vzci9iaW4vdG11eABhdHRhY2gtc2Vzc2lvbgAtdABhZ2VudHMA",
+          "cmdlineAfter": "L3Vzci9iaW4vdG11eABhdHRhY2gtc2Vzc2lvbgAtdABhZ2VudHMA",
+          "environmentBefore": "",
+          "environmentAfter": "",
+          "fdInodesBefore": [],
+          "fdInodesAfter": [],
+          "netLinesBefore": {
+            "tcp": [],
+            "tcp6": [],
+            "udp": [],
+            "udp6": []
+          },
+          "netLinesAfter": {
+            "tcp": [],
+            "tcp6": [],
+            "udp": [],
+            "udp6": []
+          }
+        },
+        {
+          "pid": 801,
+          "parentPid": 1,
+          "statBefore": "ODAxIChtb3NoLXNlcnZlcikgUyAxIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCA4MDEw",
+          "statAfter": "ODAxIChtb3NoLXNlcnZlcikgUyAxIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCA4MDEw",
+          "tty": "",
+          "cmdlineBefore": "L3Vzci9iaW4vbW9zaC1zZXJ2ZXIAbmV3AA==",
+          "cmdlineAfter": "L3Vzci9iaW4vbW9zaC1zZXJ2ZXIAbmV3AA==",
+          "environmentBefore": "",
+          "environmentAfter": "",
+          "fdInodesBefore": [
+            "60002"
+          ],
+          "fdInodesAfter": [
+            "60002"
+          ],
+          "netLinesBefore": {
+            "tcp": [],
+            "tcp6": [],
+            "udp": [
+              "ICAwOiAwNzY0MzNDNjpFQTYxIDBBMDIwMEMwOkVBNjAgMDEgMDAwMDAwMDA6MDAwMDAwMDAgMDE6MDAwMDAwMTQgMDAwMDAwMDAgODAxIDAgNjAwMDIgMSAwMDAwMDAwMDAwMDAwMDAwIDEwMCAwIDAgMTAgMA=="
+            ],
+            "udp6": []
+          },
+          "netLinesAfter": {
+            "tcp": [],
+            "tcp6": [],
+            "udp": [
+              "ICAwOiAwNzY0MzNDNjpFQTYxIDBBMDIwMEMwOkVBNjAgMDEgMDAwMDAwMDA6MDAwMDAwMDAgMDE6MDAwMDAwMTQgMDAwMDAwMDAgODAxIDAgNjAwMDIgMSAwMDAwMDAwMDAwMDAwMDAwIDEwMCAwIDAgMTAgMA=="
+            ],
+            "udp6": []
+          }
+        }
+      ]
+    },
+    "wrongLocalEndpointNetLine": "ICAwOiAwQjAyMDBDMDpDQ0JCIDA3NjQzM0M2OjAwMTYgMDEgMDAwMDAwMDA6MDAwMDAwMDAgMDE6MDAwMDAwMTQgMDAwMDAwMDAgNzAxIDAgMTIzNDUgMSAwMDAwMDAwMDAwMDAwMDAwIDEwMCAwIDAgMTAgMA==",
+    "negative": {
+      "identityChanged": "process_identity_changed",
+      "identityChangedStatAfter": "NzAyIChzc2gpIFMgMSAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgMCAwIDAgNzAyMQ==",
+      "wrongEndpoint": "candidate_count"
+    }
+  }
+}
