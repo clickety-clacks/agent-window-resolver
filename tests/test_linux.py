@@ -160,7 +160,7 @@ def parse_boundary_client(
         client["transportBoundary"] = boundary
     output["clients"] = [client]
     return LinuxCollector().parse_target_output(
-        tmux_request("gibson", "osanwe"), json.dumps(output).encode(),
+        tmux_request("atlas", "lumen"), json.dumps(output).encode(),
     )
 
 
@@ -171,10 +171,10 @@ def resolve_raw_transport(
     request = Request(
         "r", "resolve", "linked_client",
         Target(
-            ProcessIdentity("gibson", 42, "99"), "agent",
+            ProcessIdentity("atlas", 42, "99"), "agent",
             TmuxLocation("ask", "1", "%1", SocketSelector("name", "agents")),
         ),
-        "osanwe", (window,), None, Limits(),
+        "lumen", (window,), None, Limits(),
     )
     server_port = 22 if protocol == "tcp" else 60002
     local_line = endpoint_row(
@@ -200,7 +200,7 @@ def resolve_raw_transport(
             net_kind=protocol,
         ))
     local_nodes = collector.parse_process_bundle(
-        "osanwe", local_raw, require_chain=False,
+        "lumen", local_raw, require_chain=False,
     )
     client_line = "client0\t500\tother\t9\t%9"
     if protocol == "tcp":
@@ -254,17 +254,17 @@ def resolve_raw_transport(
 class LinuxParserTests(unittest.TestCase):
     def test_transport_socket_eligibility_matches_matcher_domain(self) -> None:
         cases = {
-            ("ssh", "gibson"): True,
+            ("ssh", "atlas"): True,
             ("mosh-client",): True,
-            ("env", "-e", "ssh", "gibson", "tmux", "attach", "-t", "agent"): True,
-            ("env", "-e", "mosh", "gibson", "tmux", "attach", "-t", "agent"): False,
-            ("mosh", "gibson", "tmux", "attach", "-t", "agent"): False,
+            ("env", "-e", "ssh", "atlas", "tmux", "attach", "-t", "agent"): True,
+            ("env", "-e", "mosh", "atlas", "tmux", "attach", "-t", "agent"): False,
+            ("mosh", "atlas", "tmux", "attach", "-t", "agent"): False,
             ("1Password-Brows",): False,
         }
         for argv, expected in cases.items():
             with self.subTest(argv=argv):
                 node = ProcessNode(
-                    ProcessIdentity("osanwe", 10, "42"), None, argv
+                    ProcessIdentity("lumen", 10, "42"), None, argv
                 )
                 hint = _transport_hint(node)
                 matcher_domain = (
@@ -277,8 +277,8 @@ class LinuxParserTests(unittest.TestCase):
 
     def test_stat_counter_changes_do_not_change_identity(self) -> None:
         node = raw_node(10, 1, 42, after_cpu=99)
-        parsed = LinuxCollector().parse_process_bundle("osanwe", [node])
-        self.assertEqual(parsed[0].identity, ProcessIdentity("osanwe", 10, "42"))
+        parsed = LinuxCollector().parse_process_bundle("lumen", [node])
+        self.assertEqual(parsed[0].identity, ProcessIdentity("lumen", 10, "42"))
 
     def test_allowlisted_ssh_environment_builds_full_endpoint(self) -> None:
         node = raw_node(
@@ -288,7 +288,7 @@ class LinuxParserTests(unittest.TestCase):
                 b"SSH_CONNECTION=192.0.2.10 52411 198.51.100.7 22"
             ),
         )
-        parsed = LinuxCollector().parse_process_bundle("gibson", [node])
+        parsed = LinuxCollector().parse_process_bundle("atlas", [node])
         endpoint = parsed[0].ssh_endpoints[0]
         self.assertEqual(
             (endpoint.local_address, endpoint.local_port,
@@ -298,7 +298,7 @@ class LinuxParserTests(unittest.TestCase):
 
     def test_raw_proc_net_parser_decodes_complete_tuple(self) -> None:
         node = raw_node(10, 1, 42, inode="123", net_line=tcp_row("123"))
-        parsed = LinuxCollector().parse_process_bundle("osanwe", [node])
+        parsed = LinuxCollector().parse_process_bundle("lumen", [node])
         endpoint = parsed[0].endpoints[0]
         self.assertEqual(endpoint.protocol, "tcp")
         self.assertEqual(endpoint.address_family, "ipv4")
@@ -310,17 +310,17 @@ class LinuxParserTests(unittest.TestCase):
         after = tcp_row("123").replace(b"00000000:00000000",
                                        b"00000001:00000000", 1)
         node["netLinesAfter"]["tcp"] = [b64(after)]
-        parsed = LinuxCollector().parse_process_bundle("osanwe", [node])
+        parsed = LinuxCollector().parse_process_bundle("lumen", [node])
         self.assertEqual(len(parsed[0].endpoints), 1)
     def test_target_parser_rejects_truncated_ancestry(self) -> None:
         request = Request(
             "r", "verify-target", None,
             Target(
-                ProcessIdentity("gibson", 42, "99"), "agent",
+                ProcessIdentity("atlas", 42, "99"), "agent",
                 TmuxLocation("ask", "1", "%1",
                              SocketSelector("name", "agents")),
             ),
-            "osanwe", (), None, Limits(),
+            "lumen", (), None, Limits(),
         )
         output = {
             "socketPathBefore": "/tmp/tmux/socket",
@@ -348,10 +348,10 @@ class LinuxParserTests(unittest.TestCase):
             "kind": "pane", "pid": 600, "startTimeTicks": "10",
         }
         observed = LinuxCollector().parse_target_output(
-            tmux_request("gibson", "osanwe"), json.dumps(output).encode()
+            tmux_request("atlas", "lumen"), json.dumps(output).encode()
         )
         self.assertEqual(observed.processes[-1].identity,
-                         ProcessIdentity("gibson", 600, "10"))
+                         ProcessIdentity("atlas", 600, "10"))
 
         cases = {
             "wrong-boundary-pid": {
@@ -375,7 +375,7 @@ class LinuxParserTests(unittest.TestCase):
         for name, invalid in cases.items():
             with self.subTest(name=name), self.assertRaises(CollectionFailure):
                 LinuxCollector().parse_target_output(
-                    tmux_request("gibson", "osanwe"),
+                    tmux_request("atlas", "lumen"),
                     json.dumps(invalid).encode(),
                 )
 
@@ -564,7 +564,7 @@ class LinuxParserTests(unittest.TestCase):
                        "ClearAllForwardings=yes", "PermitLocalCommand=no"):
             self.assertIn(option, joined)
     def test_bare_interactive_ssh_full_tuple_matches(self) -> None:
-        response = resolve_raw_transport("tcp", ("ssh", "gibson"))
+        response = resolve_raw_transport("tcp", ("ssh", "atlas"))
         self.assertEqual(response["status"], "matched")
         self.assert_endpoint_pair(response, "tcp")
 
@@ -575,7 +575,7 @@ class LinuxParserTests(unittest.TestCase):
 
     def test_distinct_matching_endpoint_pairs_are_not_unique(self) -> None:
         response = resolve_raw_transport(
-            "tcp", ("ssh", "gibson"), extra_pair=True,
+            "tcp", ("ssh", "atlas"), extra_pair=True,
         )
         self.assertEqual(response["status"], "unresolved")
         self.assertEqual(response["candidates"], [])
@@ -613,24 +613,24 @@ class LinuxParserTests(unittest.TestCase):
                 "identity": target["identity"],
                 "tmux": target["location"]["tmux"],
             },
-            "local": {"machine": "osanwe"},
+            "local": {"machine": "lumen"},
             "windows": [candidate["window"]],
             "prior": candidate,
         })
         self.assertEqual(parsed.prior.relation, "linked_client")
 
     def test_raw_bundle_rejects_command_exec_race(self) -> None:
-        node = raw_node(10, 1, 42, argv=("ssh", "gibson"))
+        node = raw_node(10, 1, 42, argv=("ssh", "atlas"))
         node["cmdlineAfter"] = b64(b"unrelated\0")
         with self.assertRaises(Exception):
-            LinuxCollector().parse_process_bundle("osanwe", [node])
+            LinuxCollector().parse_process_bundle("lumen", [node])
 
     def test_target_parser_rejects_changed_tmux_metadata(self) -> None:
         output = empty_target_output()
         output["paneLineAfter"] = "ask\t2\t%2\t600"
         with self.assertRaises(CollectionFailure):
             LinuxCollector().parse_target_output(
-                tmux_request("gibson", "osanwe"), json.dumps(output).encode()
+                tmux_request("atlas", "lumen"), json.dumps(output).encode()
             )
 
     def test_target_parser_rejects_duplicate_client_identity(self) -> None:
@@ -643,7 +643,7 @@ class LinuxParserTests(unittest.TestCase):
         output["clients"] = [client, {**client, "line": second}]
         with self.assertRaises(CollectionFailure):
             LinuxCollector().parse_target_output(
-                tmux_request("gibson", "osanwe"), json.dumps(output).encode()
+                tmux_request("atlas", "lumen"), json.dumps(output).encode()
             )
 
 

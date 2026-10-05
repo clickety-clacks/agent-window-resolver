@@ -108,7 +108,7 @@ def test_mosh_raw_process_parser_reaches_matcher_with_client_udp_correlation() -
     fixture = _fixture()
     raw = fixture["rawParserCases"]
     collector = _raw_collector()
-    nodes = collector.parse_process_bundle("osanwe", raw["moshProcessBundle"], require_chain=True)
+    nodes = collector.parse_process_bundle("lumen", raw["moshProcessBundle"], require_chain=True)
     assert {node.identity.pid for node in nodes} == {700, 701, 703}
     mosh_client = next(node for node in nodes if node.identity.pid == 701)
     shell = next(node for node in nodes if node.identity.pid == 703)
@@ -159,7 +159,7 @@ def test_ssh_local_socket_links_to_remote_environment_only_endpoint() -> None:
     fixture = _fixture()
     raw = fixture["rawParserCases"]
     collector = _raw_collector()
-    nodes = collector.parse_process_bundle("osanwe", raw["sshProcessBundle"], require_chain=True)
+    nodes = collector.parse_process_bundle("lumen", raw["sshProcessBundle"], require_chain=True)
     ssh = nodes[0]
     assert ssh.identity.pid == 702
     assert len(ssh.endpoints) == 1
@@ -200,7 +200,7 @@ def test_raw_parser_rejects_identity_change_and_wrong_endpoint_stays_unresolved(
     changed = copy.deepcopy(raw["sshProcessBundle"])
     changed[0]["statAfter"] = raw["negative"]["identityChangedStatAfter"]
     try:
-        collector.parse_process_bundle("osanwe", changed, require_chain=True)
+        collector.parse_process_bundle("lumen", changed, require_chain=True)
     except ValueError:
         pass
     else:
@@ -217,7 +217,7 @@ def test_raw_parser_rejects_identity_change_and_wrong_endpoint_stays_unresolved(
     wrong_bundle[0]["netLinesBefore"] = copy.deepcopy(wrong_lines)
     wrong_bundle[0]["netLinesAfter"] = copy.deepcopy(wrong_lines)
     nodes = collector.parse_process_bundle(
-        "osanwe", wrong_bundle, require_chain=True
+        "lumen", wrong_bundle, require_chain=True
     )
     assert nodes[0].endpoints[0].local_address == "192.0.2.11"
     assert nodes[0].ssh_endpoints == ()

@@ -10,14 +10,14 @@
         "requestedRelation": "visible_exact",
         "target": {
           "identity": {
-            "machine": "OSANWE.",
+            "machine": "LUMEN.",
             "instanceId": "agent-instance-1",
             "pid": 200,
             "startTimeTicks": "42"
           }
         },
         "local": {
-          "machine": "osanwe"
+          "machine": "lumen"
         },
         "windows": [
           {
@@ -47,7 +47,7 @@
             },
             "target": {
               "identity": {
-                "machine": "osanwe",
+                "machine": "lumen",
                 "instanceId": "agent-instance-1",
                 "pid": 200,
                 "startTimeTicks": "42"
@@ -97,14 +97,14 @@
         "requestedRelation": "visible_exact",
         "target": {
           "identity": {
-            "machine": "osanwe",
+            "machine": "lumen",
             "instanceId": "agent-instance-2",
             "pid": 201,
             "startTimeTicks": "43"
           }
         },
         "local": {
-          "machine": "osanwe"
+          "machine": "lumen"
         },
         "windows": [
           {
@@ -123,7 +123,7 @@
           },
           "target": {
             "identity": {
-              "machine": "osanwe",
+              "machine": "lumen",
               "instanceId": "agent-instance-1",
               "pid": 200,
               "startTimeTicks": "42"
@@ -161,14 +161,14 @@
         "requestedRelation": "linked_client",
         "target": {
           "identity": {
-            "machine": "osanwe",
+            "machine": "lumen",
             "instanceId": "agent-instance-1",
             "pid": 200,
             "startTimeTicks": "42"
           }
         },
         "local": {
-          "machine": "osanwe"
+          "machine": "lumen"
         },
         "windows": [
           {
@@ -187,7 +187,7 @@
           },
           "target": {
             "identity": {
-              "machine": "osanwe",
+              "machine": "lumen",
               "instanceId": "agent-instance-1",
               "pid": 200,
               "startTimeTicks": "42"
@@ -225,14 +225,14 @@
         "requestedRelation": "visible_exact",
         "target": {
           "identity": {
-            "machine": "osanwe",
+            "machine": "lumen",
             "instanceId": "agent-instance-1",
             "pid": 200,
             "startTimeTicks": "42"
           }
         },
         "local": {
-          "machine": "osanwe"
+          "machine": "lumen"
         },
         "windows": [
           {
@@ -251,7 +251,7 @@
           },
           "target": {
             "identity": {
-              "machine": "osanwe",
+              "machine": "lumen",
               "instanceId": "agent-instance-1",
               "pid": 200,
               "startTimeTicks": "42"
@@ -289,14 +289,14 @@
         "requestedRelation": "visible_exact",
         "target": {
           "identity": {
-            "machine": "osanwe",
+            "machine": "lumen",
             "instanceId": "agent-instance-1",
             "pid": 200,
             "startTimeTicks": "42"
           }
         },
         "local": {
-          "machine": "osanwe"
+          "machine": "lumen"
         },
         "windows": [
           {

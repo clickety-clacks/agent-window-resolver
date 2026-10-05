@@ -190,7 +190,7 @@ class TransportProbeTests(unittest.TestCase):
 
     def test_too_little_time_is_partial_without_running_ssh(self) -> None:
         prober = TransportProber(popen=lambda *a, **k: self.fail("probe ran"))
-        self.assertEqual(prober.probe("gibson", 0.5)["state"], "partial")
+        self.assertEqual(prober.probe("atlas", 0.5)["state"], "partial")
 
     def test_normalize_rejects_malformed_collector_output(self) -> None:
         for value in (None, {"state": "complete"}, {
@@ -208,18 +208,18 @@ def _verify_request(**extra) -> dict:
         "schema": "agent-window-resolver.request.v1",
         "requestId": "r", "operation": "verify-target",
         "target": {"identity": {
-            "machine": "osanwe", "instanceId": "agent",
+            "machine": "lumen", "instanceId": "agent",
             "pid": 200, "startTimeTicks": "42",
         }},
-        "local": {"machine": "osanwe"}, "windows": [], **extra,
+        "local": {"machine": "lumen"}, "windows": [], **extra,
     }
 
 
 class TransportProtocolTests(unittest.TestCase):
     def snapshot(self) -> TopologySnapshot:
-        identity = ProcessIdentity("osanwe", 200, "42")
+        identity = ProcessIdentity("lumen", 200, "42")
         return TopologySnapshot((), TargetObservation(
-            "osanwe", None, None, (ProcessNode(identity, None),), None, (),
+            "lumen", None, None, (ProcessNode(identity, None),), None, (),
         ))
 
     def test_probe_transports_is_verify_target_only_and_boolean(self) -> None:

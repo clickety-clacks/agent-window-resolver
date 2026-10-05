@@ -46,7 +46,7 @@ from connection_fixture import (  # noqa: E402
 
 
 _TARGET_MACHINE = "private-fixture-target.invalid"
-_LOCAL_MACHINE = "plumbus"
+_LOCAL_MACHINE = "testbed"
 
 
 def _request_and_remote(snapshot: PrivatePaneSnapshot) -> tuple[Request, str]:
@@ -220,7 +220,7 @@ class TrackedFixtureProbeIO:
 
 @unittest.skipUnless(
     live_test_authorized(),
-    "private producer smoke requires the fixture's explicit Plumbus opt-in",
+    "private producer smoke requires the fixture's explicit Testbed opt-in",
 )
 class PrivateProducerSmokeTests(unittest.TestCase):
     def test_real_remote_probe_discovers_then_pins_private_tmux_socket(self) -> None:

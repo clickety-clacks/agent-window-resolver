@@ -28,10 +28,10 @@ def make_request() -> Request:
     return Request(
         "collect-1", "resolve", "linked_client",
         Target(
-            ProcessIdentity("gibson", 42, "99"), "agent",
+            ProcessIdentity("atlas", 42, "99"), "agent",
             TmuxLocation("ask", "1", "%1", SocketSelector("name", "agents")),
         ),
-        "osanwe", (window,), None, Limits(),
+        "lumen", (window,), None, Limits(),
     )
 
 
@@ -74,7 +74,7 @@ class ScriptedProbeIO:
         local = endpoint_row(
             "11", "192.0.2.10", 52411, "198.51.100.7", port
         )
-        command = ("ssh", "gibson") if protocol == "tcp" else ("mosh-client",)
+        command = ("ssh", "atlas") if protocol == "tcp" else ("mosh-client",)
         self.records: dict[int, dict[str, Any]] = {
             100: {"parent": 1, "ticks": 20, "argv": ("terminal",),
                   "children": (200,)},
@@ -211,7 +211,7 @@ class LinuxCollectTests(unittest.TestCase):
         request = replace(
             make_request(), operation="match", requested_relation=None,
             target=Target(
-                ProcessIdentity("osanwe", 42, "99"), "agent",
+                ProcessIdentity("lumen", 42, "99"), "agent",
                 TmuxLocation("ask", "1", "%1", SocketSelector("name", "agents")),
             ),
         )
@@ -265,7 +265,7 @@ class LinuxCollectTests(unittest.TestCase):
         request = replace(
             make_request(), operation="match", requested_relation=None,
             target=Target(
-                ProcessIdentity("gibson", 42, "99"), "agent", name="agent"
+                ProcessIdentity("atlas", 42, "99"), "agent", name="agent"
             ),
             windows=(Window("window-1", "0xabc", 100, "20", title="agent"),),
         )
@@ -299,17 +299,17 @@ class LinuxCollectTests(unittest.TestCase):
     def test_direct_target_collection_does_not_walk_unrelated_ancestors(self) -> None:
         request = replace(
             make_request(),
-            target=Target(ProcessIdentity("osanwe", 42, "99"), "agent"),
-            local_machine="osanwe",
+            target=Target(ProcessIdentity("lumen", 42, "99"), "agent"),
+            local_machine="lumen",
         )
         collector = LinuxCollector(ScriptedProbeIO("tcp"))
-        target_node = ProcessNode(ProcessIdentity("osanwe", 42, "99"), None)
+        target_node = ProcessNode(ProcessIdentity("lumen", 42, "99"), None)
         with patch.object(collector, "_node", return_value=target_node) as node, \
              patch.object(collector, "_ancestors", side_effect=AssertionError("ancestor walk")):
             observation = collector._target(request, Deadline(1_000))
         self.assertEqual(observation.collection_state, "complete")
         self.assertEqual(observation.processes, (target_node,))
-        node.assert_called_once_with(42, "osanwe")
+        node.assert_called_once_with(42, "lumen")
 
     def test_full_ssh_collect_uses_raw_hidden_sshd_endpoint(self) -> None:
         request = make_request()
@@ -370,20 +370,20 @@ class LinuxCollectTests(unittest.TestCase):
         io.records[200]["net_line"] = endpoint_row(
             long_inode, "192.0.2.10", 52411, "198.51.100.7", 22
         )
-        node = LinuxCollector(io)._node(200, "osanwe")
+        node = LinuxCollector(io)._node(200, "lumen")
         self.assertEqual(len(node.endpoints), 1)
 
     def test_ineligible_to_ssh_argv_change_fails_closed(self) -> None:
         class IneligibleToSshIO(ScriptedProbeIO):
             def read_bytes(self, path: str, max_bytes: int) -> bytes:
                 if path.endswith("/100/cmdline") and self.cmdline_calls.get(100, 0) >= 1:
-                    self.records[100]["argv"] = ("ssh", "gibson")
+                    self.records[100]["argv"] = ("ssh", "atlas")
                 return super().read_bytes(path, max_bytes)
 
         io = IneligibleToSshIO("tcp")
         with self.assertRaises(CollectionFailure) as raised:
             LinuxCollector(io)._descendants(
-                100, "osanwe", Deadline(1_000, io.monotonic)
+                100, "lumen", Deadline(1_000, io.monotonic)
             )
         self.assertEqual(
             raised.exception.error.code, "process_identity_changed"
@@ -415,7 +415,7 @@ class LinuxCollectTests(unittest.TestCase):
             "children": (), "state": "Z",
         }
         nodes = LinuxCollector(io)._descendants(
-            100, "osanwe", Deadline(1_000, io.monotonic)
+            100, "lumen", Deadline(1_000, io.monotonic)
         )
         self.assertEqual(
             tuple(node.identity.pid for node in nodes), (100, 200)
@@ -427,7 +427,7 @@ class LinuxCollectTests(unittest.TestCase):
         io.records[100]["children"] = ()
         with self.assertRaises(CollectionFailure) as raised:
             LinuxCollector(io)._descendants(
-                100, "osanwe", Deadline(1_000, io.monotonic)
+                100, "lumen", Deadline(1_000, io.monotonic)
             )
         self.assertEqual(raised.exception.error.code, "process_not_live")
 
@@ -436,7 +436,7 @@ class LinuxCollectTests(unittest.TestCase):
         io.records[100]["state"] = "Z"
         with self.assertRaises(CollectionFailure) as raised:
             LinuxCollector(io)._descendants(
-                100, "osanwe", Deadline(1_000, io.monotonic)
+                100, "lumen", Deadline(1_000, io.monotonic)
             )
         self.assertEqual(
             raised.exception.error.code, "zombie_process_has_children"
@@ -455,7 +455,7 @@ class LinuxCollectTests(unittest.TestCase):
         io.records[100]["children"] = ()
         with self.assertRaises(CollectionFailure) as raised:
             LinuxCollector(io)._descendants(
-                100, "osanwe", Deadline(1_000, io.monotonic)
+                100, "lumen", Deadline(1_000, io.monotonic)
             )
         self.assertEqual(
             raised.exception.error.code, "process_identity_changed"
@@ -472,7 +472,7 @@ class LinuxCollectTests(unittest.TestCase):
         io = AfterZombieReuseIO("tcp")
         with self.assertRaises(CollectionFailure) as raised:
             LinuxCollector(io)._descendants(
-                100, "osanwe", Deadline(1_000, io.monotonic)
+                100, "lumen", Deadline(1_000, io.monotonic)
             )
         self.assertEqual(
             raised.exception.error.code, "process_identity_changed"
@@ -489,7 +489,7 @@ class LinuxCollectTests(unittest.TestCase):
         io = FinalZombieReuseIO("tcp")
         with self.assertRaises(CollectionFailure) as raised:
             LinuxCollector(io)._descendants(
-                100, "osanwe", Deadline(1_000, io.monotonic)
+                100, "lumen", Deadline(1_000, io.monotonic)
             )
         self.assertEqual(
             raised.exception.error.code, "process_identity_changed"
@@ -505,7 +505,7 @@ class LinuxCollectTests(unittest.TestCase):
             return original(path, max_chars)
 
         io.readlink = readlink  # type: ignore[method-assign]
-        LinuxCollector(io)._node(200, "osanwe")
+        LinuxCollector(io)._node(200, "lumen")
         self.assertTrue(bounds)
         self.assertEqual(min(bounds), 4096)
 

@@ -145,7 +145,7 @@ def _request(snapshot: PrivatePaneSnapshot, ssh_pid: int, ssh_ticks: int) -> Req
 
 @unittest.skipUnless(
     live_test_authorized(),
-    "private SSH matcher smoke requires the fixture's explicit Plumbus opt-in",
+    "private SSH matcher smoke requires the fixture's explicit Testbed opt-in",
 )
 class PrivateSshMatcherSmokeTests(unittest.TestCase):
     def test_real_endpoint_and_tmux_visibility_match_synthetic_ssh_root(self) -> None:
