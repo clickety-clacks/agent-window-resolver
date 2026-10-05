@@ -2,57 +2,57 @@
   "schema": "agent-window-resolver.ask-regressions.v1",
   "identities": {
     "root": {
-      "machine": "osanwe",
+      "machine": "lumen",
       "pid": 100,
       "startTimeTicks": "1000"
     },
     "target": {
-      "machine": "osanwe",
+      "machine": "lumen",
       "pid": 500,
       "startTimeTicks": "5000"
     },
     "reused": {
-      "machine": "osanwe",
+      "machine": "lumen",
       "pid": 500,
       "startTimeTicks": "4999"
     },
     "remote": {
-      "machine": "plumbus",
+      "machine": "testbed",
       "pid": 500,
       "startTimeTicks": "5000"
     },
     "localShadow": {
-      "machine": "osanwe",
+      "machine": "lumen",
       "pid": 500,
       "startTimeTicks": "5000"
     },
     "paneRoot": {
-      "machine": "osanwe",
+      "machine": "lumen",
       "pid": 110,
       "startTimeTicks": "1100"
     },
     "rootA": {
-      "machine": "osanwe",
+      "machine": "lumen",
       "pid": 101,
       "startTimeTicks": "1001"
     },
     "rootB": {
-      "machine": "osanwe",
+      "machine": "lumen",
       "pid": 102,
       "startTimeTicks": "1002"
     },
     "incompleteRoot": {
-      "machine": "osanwe",
+      "machine": "lumen",
       "pid": 103,
       "startTimeTicks": "1003"
     },
     "priorRoot": {
-      "machine": "osanwe",
+      "machine": "lumen",
       "pid": 104,
       "startTimeTicks": "1004"
     },
     "substituteRoot": {
-      "machine": "osanwe",
+      "machine": "lumen",
       "pid": 105,
       "startTimeTicks": "1005"
     }
@@ -195,14 +195,14 @@
         "requestedRelation": "visible_exact",
         "target": {
           "identity": {
-            "machine": "OSANWE.",
+            "machine": "LUMEN.",
             "instanceId": "local-roster",
             "pid": 500,
             "startTimeTicks": "5000"
           }
         },
         "local": {
-          "machine": "osanwe"
+          "machine": "lumen"
         },
         "windows": [
           {
@@ -229,7 +229,7 @@
           }
         ],
         "target": {
-          "machine": "osanwe",
+          "machine": "lumen",
           "socket": null,
           "actualSocketPath": null,
           "processes": [
@@ -253,14 +253,14 @@
         "requestedRelation": "visible_exact",
         "target": {
           "identity": {
-            "machine": "osanwe",
+            "machine": "lumen",
             "instanceId": "reuse-roster",
             "pid": 500,
             "startTimeTicks": "5000"
           }
         },
         "local": {
-          "machine": "osanwe"
+          "machine": "lumen"
         },
         "windows": [
           {
@@ -287,7 +287,7 @@
           }
         ],
         "target": {
-          "machine": "osanwe",
+          "machine": "lumen",
           "socket": null,
           "actualSocketPath": null,
           "processes": [
@@ -312,7 +312,7 @@
         "requestedRelation": "visible_exact",
         "target": {
           "identity": {
-            "machine": "osanwe",
+            "machine": "lumen",
             "instanceId": "pane-roster",
             "pid": 500,
             "startTimeTicks": "5000"
@@ -328,7 +328,7 @@
           }
         },
         "local": {
-          "machine": "osanwe"
+          "machine": "lumen"
         },
         "windows": [
           {
@@ -355,7 +355,7 @@
           }
         ],
         "target": {
-          "machine": "osanwe",
+          "machine": "lumen",
           "socket": {
             "kind": "path",
             "value": "/run/user/1000/tmux.sock"
@@ -388,14 +388,14 @@
         "requestedRelation": "visible_exact",
         "target": {
           "identity": {
-            "machine": "osanwe",
+            "machine": "lumen",
             "instanceId": "ambiguous-roster",
             "pid": 500,
             "startTimeTicks": "5000"
           }
         },
         "local": {
-          "machine": "osanwe"
+          "machine": "lumen"
         },
         "windows": [
           {
@@ -440,7 +440,7 @@
           }
         ],
         "target": {
-          "machine": "osanwe",
+          "machine": "lumen",
           "socket": null,
           "actualSocketPath": null,
           "processes": [
@@ -465,14 +465,14 @@
         "requestedRelation": "visible_exact",
         "target": {
           "identity": {
-            "machine": "plumbus",
+            "machine": "testbed",
             "instanceId": "remote-roster",
             "pid": 500,
             "startTimeTicks": "5000"
           }
         },
         "local": {
-          "machine": "osanwe"
+          "machine": "lumen"
         },
         "windows": [
           {
@@ -499,7 +499,7 @@
           }
         ],
         "target": {
-          "machine": "plumbus",
+          "machine": "testbed",
           "socket": null,
           "actualSocketPath": null,
           "processes": [
@@ -524,14 +524,14 @@
         "requestedRelation": "visible_exact",
         "target": {
           "identity": {
-            "machine": "osanwe",
+            "machine": "lumen",
             "instanceId": "incomplete-roster",
             "pid": 500,
             "startTimeTicks": "5000"
           }
         },
         "local": {
-          "machine": "osanwe"
+          "machine": "lumen"
         },
         "windows": [
           {
@@ -567,7 +567,7 @@
           }
         ],
         "target": {
-          "machine": "osanwe",
+          "machine": "lumen",
           "socket": null,
           "actualSocketPath": null,
           "processes": [
@@ -592,14 +592,14 @@
         "requestedRelation": "visible_exact",
         "target": {
           "identity": {
-            "machine": "osanwe",
+            "machine": "lumen",
             "instanceId": "prior-roster",
             "pid": 500,
             "startTimeTicks": "5000"
           }
         },
         "local": {
-          "machine": "osanwe"
+          "machine": "lumen"
         },
         "windows": [
           {
@@ -618,7 +618,7 @@
           },
           "target": {
             "identity": {
-              "machine": "osanwe",
+              "machine": "lumen",
               "instanceId": "prior-roster",
               "pid": 500,
               "startTimeTicks": "5000"
@@ -643,7 +643,7 @@
       "snapshot": {
         "windows": [],
         "target": {
-          "machine": "osanwe",
+          "machine": "lumen",
           "socket": null,
           "actualSocketPath": null,
           "processes": [],
@@ -666,14 +666,14 @@
         "requestedRelation": "visible_exact",
         "target": {
           "identity": {
-            "machine": "osanwe",
+            "machine": "lumen",
             "instanceId": "substitution-roster",
             "pid": 500,
             "startTimeTicks": "5000"
           }
         },
         "local": {
-          "machine": "osanwe"
+          "machine": "lumen"
         },
         "windows": [
           {
@@ -698,7 +698,7 @@
           },
           "target": {
             "identity": {
-              "machine": "osanwe",
+              "machine": "lumen",
               "instanceId": "substitution-roster",
               "pid": 500,
               "startTimeTicks": "5000"
@@ -747,7 +747,7 @@
           }
         ],
         "target": {
-          "machine": "osanwe",
+          "machine": "lumen",
           "socket": null,
           "actualSocketPath": null,
           "processes": [
@@ -771,7 +771,7 @@
       "transport": "mosh",
       "argv": [
         "/usr/bin/mosh",
-        "plumbus",
+        "testbed",
         "tmux",
         "attach",
         "-t",
@@ -827,7 +827,7 @@
         "/usr/bin/ssh",
         "-o",
         "BatchMode=yes",
-        "plumbus",
+        "testbed",
         "tmux",
         "attach",
         "-t",
@@ -1057,7 +1057,7 @@
       "requestedRelation": "visible_exact",
       "target": {
         "identity": {
-          "machine": "plumbus",
+          "machine": "testbed",
           "instanceId": "raw-remote",
           "pid": 500,
           "startTimeTicks": "5000"
@@ -1073,7 +1073,7 @@
         }
       },
       "local": {
-        "machine": "osanwe"
+        "machine": "lumen"
       },
       "windows": [
         {

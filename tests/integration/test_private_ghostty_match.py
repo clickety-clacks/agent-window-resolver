@@ -377,7 +377,7 @@ def _request(snapshot, window: Window) -> Request:
 
 @unittest.skipUnless(
     _live_authorized(),
-    "private Ghostty matcher requires explicit Plumbus desktop opt-in",
+    "private Ghostty matcher requires explicit Testbed desktop opt-in",
 )
 class PrivateGhosttyMatcherTests(unittest.TestCase):
     def test_real_hypr_window_ancestry_matches_private_ssh_target(self) -> None:

@@ -23,7 +23,7 @@ from agent_window_resolver import (
 )
 
 
-LOCAL = "osanwe"
+LOCAL = "lumen"
 SOCKET = SocketSelector("name", "agents")
 LOCATION = TmuxLocation("ask", "1", "%1", SOCKET)
 TARGET = Target(ProcessIdentity(LOCAL, 42, "99"), "agent", LOCATION)

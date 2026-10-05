@@ -33,10 +33,10 @@ def valid_request(*, max_stdout_bytes: int | None = None) -> dict:
         "schema": "agent-window-resolver.request.v1",
         "requestId": "r", "operation": "verify-target",
         "target": {"identity": {
-            "machine": "osanwe", "instanceId": "agent",
+            "machine": "lumen", "instanceId": "agent",
             "pid": 2, "startTimeTicks": "1",
         }},
-        "local": {"machine": "osanwe"}, "windows": [],
+        "local": {"machine": "lumen"}, "windows": [],
     }
     if max_stdout_bytes is not None:
         value["limits"] = {"maxStdoutBytes": max_stdout_bytes}
@@ -70,11 +70,11 @@ class CliTests(unittest.TestCase):
             "operation": "verify-target",
             "target": {
                 "identity": {
-                    "machine": "osanwe", "instanceId": "agent",
+                    "machine": "lumen", "instanceId": "agent",
                     "pid": 2, "startTimeTicks": "1",
                 }
             },
-            "local": {"machine": "osanwe"},
+            "local": {"machine": "lumen"},
             "windows": [],
             "limits": None,
         }
@@ -101,11 +101,11 @@ class CliTests(unittest.TestCase):
             "operation": "verify-target",
             "target": {
                 "identity": {
-                    "machine": "osanwe", "instanceId": "agent\ud800",
+                    "machine": "lumen", "instanceId": "agent\ud800",
                     "pid": 2, "startTimeTicks": "1",
                 }
             },
-            "local": {"machine": "osanwe"},
+            "local": {"machine": "lumen"},
             "windows": [],
         }
         code, response = self.invoke(json.dumps(request).encode())

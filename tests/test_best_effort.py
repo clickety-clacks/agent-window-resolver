@@ -26,7 +26,7 @@ from agent_window_resolver import (
 from agent_window_resolver.model import Limits, Request
 
 
-LOCAL = "osanwe"
+LOCAL = "lumen"
 
 
 def _identity(machine: str, pid: int, ticks: str) -> ProcessIdentity:
@@ -38,7 +38,7 @@ def _request(
     *,
     name: str | None = None,
     tmux: TmuxLocation | None = None,
-    machine: str = "gibson",
+    machine: str = "atlas",
 ) -> Request:
     return Request(
         "best-effort", "match", None,
@@ -49,7 +49,7 @@ def _request(
 
 def _unreachable_target() -> TargetObservation:
     return TargetObservation(
-        "gibson", None, None, (), None, (), "unreachable",
+        "atlas", None, None, (), None, (), "unreachable",
         (ObservationError("remote_unreachable", "transport", "offline", True),),
     )
 
@@ -59,7 +59,7 @@ class BestEffortTests(unittest.TestCase):
         window = Window("window-a", "0xabc", 100, "20", title="mosh")
         request = _request((window,), tmux=TmuxLocation("ask", "0", "%1"))
         node = ProcessNode(_identity(LOCAL, 100, "20"), None,
-                           ("mosh", "gibson", "tmux", "attach", "-t", "ask"))
+                           ("mosh", "atlas", "tmux", "attach", "-t", "ask"))
         collector = LinuxCollector()
         with patch.object(collector, "_node", return_value=node), \
                 patch.object(collector, "_children", side_effect=PermissionError("child")):
@@ -76,7 +76,7 @@ class BestEffortTests(unittest.TestCase):
         window = Window("window-a", "0xabc", 100, "20", title="ssh")
         remote = "exec tmux attach-session -t " + shlex.quote("=ask (review)")
         node = ProcessNode(_identity(LOCAL, 100, "20"), None,
-                           ("ghostty", "-e", "ssh", "--", "gibson",
+                           ("ghostty", "-e", "ssh", "--", "atlas",
                             "sh -lc " + shlex.quote(remote)))
         request = _request((window,), tmux=TmuxLocation("ask (review)", "0", "%1"))
         response = Resolver().resolve(request, StaticCollector(TopologySnapshot(
@@ -103,7 +103,7 @@ class BestEffortTests(unittest.TestCase):
         window = Window("window-a", "0xabc", 100, "20")
         root = ProcessNode(
             _identity(LOCAL, 100, "20"), None,
-            ("mosh-client", "-# -- gibson tmux attach-session -t 0_1_9 (patrol) |", "1", "2"),
+            ("mosh-client", "-# -- atlas tmux attach-session -t 0_1_9 (patrol) |", "1", "2"),
         )
         request = _request(
             (window,),
@@ -145,7 +145,7 @@ class BestEffortTests(unittest.TestCase):
             with self.subTest(title=title):
                 window = Window("window-a", "0xabc", 100, "20", title=title)
                 node = ProcessNode(_identity(LOCAL, 100, "20"), None,
-                                   ("ssh", "gibson"))
+                                   ("ssh", "atlas"))
                 request = _request((window,), name="ask")
                 response = Resolver().resolve(request, StaticCollector(TopologySnapshot(
                     (WindowObservation(window, (node,), "complete"),),
@@ -204,7 +204,7 @@ class BestEffortTests(unittest.TestCase):
                          ["local_collection_incomplete"])
 
     def test_local_tmux_client_pid_and_location_rank_window_without_exact_proof(self) -> None:
-        window = Window("window-a", "0xabc", 100, "20", title="osanwe:mike")
+        window = Window("window-a", "0xabc", 100, "20", title="lumen:mike")
         root = ProcessNode(_identity(LOCAL, 100, "20"), None, ("ghostty",))
         client = ProcessNode(_identity(LOCAL, 200, "30"), root.identity,
                              ("tmux",))

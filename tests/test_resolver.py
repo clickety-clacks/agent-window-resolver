@@ -23,7 +23,7 @@ from agent_window_resolver import (
 from agent_window_resolver.model import Limits, Request
 
 
-LOCAL = "osanwe"
+LOCAL = "lumen"
 
 
 def identity(pid: int, ticks: str) -> ProcessIdentity:

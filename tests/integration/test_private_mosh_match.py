@@ -519,7 +519,7 @@ class MoshMatcherSafetyTests(unittest.TestCase):
 
 @unittest.skipUnless(
     _live_authorized(),
-    "private mosh matcher requires both explicit Plumbus mosh opt-ins",
+    "private mosh matcher requires both explicit Testbed mosh opt-ins",
 )
 class PrivateMoshMatcherSmokeTests(unittest.TestCase):
     def test_real_mosh_udp_and_tmux_visibility_match(self) -> None:
