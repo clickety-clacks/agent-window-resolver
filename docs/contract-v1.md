@@ -116,6 +116,10 @@ Operation-specific fields are:
 | `verify-target` | Forbidden | Must be empty | Forbidden |
 | `match` | Forbidden | Caller snapshot | Forbidden |
 
+`verify-target` also accepts `probeTransports: true` (a boolean; any other
+operation that carries the field is `invalid_probe_transports`). See
+"Transport reachability" below.
+
 The prior candidate is a complete candidate previously returned by this
 protocol. It is a claim to re-check, not trusted evidence. For `revalidate`,
 its normalized target identity and location must equal the current request
@@ -355,11 +359,54 @@ Its peer matches only if protocol and reversed normalized address keys and
 ports match: local `198.51.100.7:22` and remote
 `192.0.2.10:52411`.
 
+## Transport reachability
+
+A `verified` response to a `verify-target` request with `probeTransports:
+true` carries `transports`: what this machine can reach on the target's
+machine, measured, not inferred from installed binaries. The resolver never
+chooses a transport; that is caller policy.
+
+```json
+"transports": {
+  "state": "complete",
+  "ssh":  {"state": "available",   "code": "ssh_probe_succeeded"},
+  "et":   {"state": "available",   "code": "et_reachable", "port": 2022},
+  "mosh": {"state": "unavailable", "code": "mosh_udp_blocked"}
+}
+```
+
+One extra bounded SSH connection runs a standard-library probe on the target.
+et is `available` only when `etserver` is running, `etterminal` is on the
+non-interactive PATH, and a TCP connection from here to etserver's port (from
+its `--port`, its config file, or 2022) succeeds. mosh is `available` only
+when `mosh-server` is on that PATH and a nonce sent from here to a UDP port the
+probe holds in 60001-60999 is echoed back. Both use the server address SSH
+reached (`SSH_CONNECTION`).
+
+`state` is `complete`, `partial` (some entries `unknown`; `probe_failed` when
+SSH reached the host but the probe could not run there), `unreachable` (SSH
+itself failed: every entry `unknown`; callers must not treat this as a
+transport failure), or `not_applicable` (the target is local).
+Entry states are `available`, `unavailable` or `unknown`; `code` is a stable
+snake_case reason and `port` is present for et when known.
+
+Window identification does not depend on this observation or on any caller
+setting: et, mosh and ssh windows are recognized from what is running. et
+client argv (`et [options] [--] host -c COMMAND`) is a host/session hint graded
+like mosh (`et_hint_not_exact_proof`); there is no exact et proof because the
+remote tmux client descends from `etterminal`, while the TCP connection belongs
+to the shared `etserver`.
+
 ## Versioning
 
 V1 consumers require exact request and response schema tags. Unknown tags,
 operations, top-level fields, or enum values are invalid; there is no
 best-effort version fallback. Additive fields require a new protocol version
-unless an existing bounded extension point permits them. The CLI exposes its
-implementation version separately (for example `--version`) without changing
-JSON request framing.
+unless an existing bounded extension point permits them.
+
+Every response, including CLI framing errors, carries `resolverVersion`, the
+library version (also printed by `--version`). Library 0.2.0 added
+`resolverVersion`, `probeTransports` and `transports`. A caller that sends a
+newer field to a vendored copy that predates it receives `invalid` without
+`resolverVersion`; it should report "resolver too old", not "invalid
+request".
