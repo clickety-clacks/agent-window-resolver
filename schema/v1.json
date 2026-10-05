@@ -419,6 +419,10 @@
           "maxItems": 4096,
           "items": { "$ref": "#/$defs/window" }
         },
+        "probeTransports": {
+          "type": "boolean",
+          "description": "verify-target only: also observe et, mosh and ssh reachability"
+        },
         "prior": {
           "allOf": [
             { "$ref": "#/$defs/candidate" },
@@ -503,6 +507,16 @@
         }
       }
     },
+    "transportObservation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["state", "code"],
+      "properties": {
+        "state": { "enum": ["available", "unavailable", "unknown"] },
+        "code": { "type": "string", "pattern": "^[a-z][a-z0-9_]{0,63}(?![\\s\\S])" },
+        "port": { "type": "integer", "minimum": 1, "maximum": 65535 }
+      }
+    },
     "response": {
       "type": "object",
       "additionalProperties": false,
@@ -518,6 +532,21 @@
       "properties": {
         "schema": {
           "const": "agent-window-resolver.response.v1"
+        },
+        "resolverVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?![\\s\\S])"
+        },
+        "transports": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["state", "ssh", "et", "mosh"],
+          "properties": {
+            "state": { "enum": ["complete", "partial", "unreachable", "not_applicable"] },
+            "ssh": { "$ref": "#/$defs/transportObservation" },
+            "et": { "$ref": "#/$defs/transportObservation" },
+            "mosh": { "$ref": "#/$defs/transportObservation" }
+          }
         },
         "requestId": {
           "oneOf": [

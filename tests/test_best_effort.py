@@ -170,6 +170,30 @@ class BestEffortTests(unittest.TestCase):
         self.assertEqual(len(response["candidates"]), 3)
         self.assertTrue(all(c["match"]["score"] >= 90 for c in response["candidates"]))
 
+    def test_captured_et_command_forms_return_all_existing_windows(self) -> None:
+        fixture = json.loads((Path(__file__).resolve().parents[1] /
+                              "fixtures/et-window-hints.json").read_text())
+        observations = []
+        for index, record in enumerate(fixture["windows"]):
+            window = Window(f"window-{index}", hex(100 + index), 100 + index,
+                            "20", title=record["title"])
+            node = ProcessNode(_identity(LOCAL, window.pid, "20"), None,
+                               tuple(record["argv"]))
+            observations.append(WindowObservation(window, (node,), "complete"))
+        request = _request(tuple(o.window for o in observations),
+                           tmux=TmuxLocation(fixture["session"], "0", "%100"))
+        response = Resolver().resolve(request, StaticCollector(TopologySnapshot(
+            tuple(observations), _unreachable_target())))
+        self.assertEqual(response["status"], "matched")
+        self.assertEqual(len(response["candidates"]), len(fixture["windows"]))
+        for candidate in response["candidates"]:
+            match = candidate["match"]
+            self.assertGreaterEqual(match["score"], 90)
+            self.assertIn("transport_host_session_hint",
+                          [item["code"] for item in match["evidence"]])
+            self.assertIn("et_hint_not_exact_proof",
+                          [item["code"] for item in match["uncertainty"]])
+
     def test_unreadable_window_is_not_confirmed_absence(self) -> None:
         window = Window("window-a", "0xabc", 100, "20", title="mosh")
         response = Resolver().resolve(_request((window,), name="ask"),

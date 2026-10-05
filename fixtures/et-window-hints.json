@@ -1,0 +1,51 @@
+{
+  "description": "Eternal Terminal client argv forms. The first was captured from a live et 7.0.0 client on nacelle on 2026-10-05 (lab port, fifo path and host sanitized); the others are the forms Yoohoo and Ask launch and a hand-typed one. et puts the remote command in -c, not after the host. These are name/transport hints, not exact proofs.",
+  "machine": "gibson",
+  "session": "0_1_9 (gibson-codex-ticket-patrol-20260908b)",
+  "windows": [
+    {
+      "title": "et",
+      "argv": [
+        "et",
+        "-p",
+        "2022",
+        "--serverfifo",
+        "/tmp/etserver.fifo",
+        "-c",
+        "tmux attach -t '=0_1_9 (gibson-codex-ticket-patrol-20260908b)'",
+        "gibson"
+      ]
+    },
+    {
+      "title": "et",
+      "argv": [
+        "et",
+        "-c",
+        "sh -lc 'exec tmux attach-session -t '\"'\"'=0_1_9 (gibson-codex-ticket-patrol-20260908b)'\"'\"''",
+        "--",
+        "gibson"
+      ]
+    },
+    {
+      "title": "et",
+      "argv": [
+        "et",
+        "-p",
+        "2022",
+        "-c",
+        "sh -lc ''\\''tmux'\\'' '\\''attach-session'\\'' '\\''-t'\\'' '\\''=0_1_9 (gibson-codex-ticket-patrol-20260908b):0.%100'\\'''",
+        "--",
+        "gibson"
+      ]
+    },
+    {
+      "title": "et",
+      "argv": [
+        "et",
+        "gibson:2022",
+        "-c",
+        "tmux new-session -A -s '0_1_9 (gibson-codex-ticket-patrol-20260908b)'"
+      ]
+    }
+  ]
+}

@@ -31,6 +31,7 @@
       },
       "response": {
         "schema": "agent-window-resolver.response.v1",
+        "resolverVersion": "0.2.0",
         "requestId": "fixture-resolve-1",
         "operation": "resolve",
         "requestedRelation": "visible_exact",
