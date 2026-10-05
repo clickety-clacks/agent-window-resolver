@@ -16,13 +16,13 @@ c917960688c83989998beb77b8a070ff250df061683a6dd47610d2063b6e172d  model.py
 24174377501e53434c8786f75641be5be9e71baa9b0e96274e9e1aca72d40d42  resolver.py
 ```
 
-Testbed validation: 81 core tests, 80 Yoohoo tests, and the actual two-Ghostty
+The test machine validation: 81 core tests, 80 Yoohoo tests, and the actual two-Ghostty
 window production activation test passed. The three captured mosh command forms
 match without endpoints in shared regression tests. Follow-up Yoohoo activation
 tests also passed with two real mosh connections and with a real local
 Ghostty/tmux window, including workspace navigation, acknowledgement, unchanged
-window/client sets, and cleanup. The installed lumen popup was not test-clicked.
-No automated tests ran on lumen. Mike subsequently authorized the
+window/client sets, and cleanup. The installed desktop popup was not test-clicked.
+No automated tests ran on the desktop. Mike subsequently authorized the
 Yoohoo fix installation there; only its tracker service was restarted. Ask
 deployment remains under its own authorization.
 
@@ -37,7 +37,7 @@ Local tmux correction: an existing client with generic title/argv is matched
 using current tmux session/window/pane and client PID/start identity within its
 terminal subtree. Full target/transport probing is no longer required for local
 `match`. A live private-tmux unnamed-client regression failed before this change
-and passed afterward on Testbed. This supersedes `c83fd9f9...` locally as well.
+and passed afterward on the test machine. This supersedes `c83fd9f9...` locally as well.
 
 For `match`, consume ranked candidates, including multiple candidates for one
 agent. Distinguish evidence from proof. Prefer an existing match, then refresh

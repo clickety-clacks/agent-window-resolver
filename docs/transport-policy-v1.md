@@ -62,7 +62,7 @@ Each app keeps one JSON file per host under its state directory
 user's settings:
 
 ```json
-{"schema": "transport-capabilities.v1", "host": "atlas",
+{"schema": "transport-capabilities.v1", "host": "remote-host",
  "observedAtUnixMs": 1790000000000, "resolverVersion": "0.2.0",
  "transports": { ...the resolver's transports object... }}
 ```
