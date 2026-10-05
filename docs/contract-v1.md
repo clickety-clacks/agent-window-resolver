@@ -383,9 +383,10 @@ when `mosh-server` is on that PATH and a nonce sent from here to a UDP port the
 probe holds in 60001-60999 is echoed back. Both use the server address SSH
 reached (`SSH_CONNECTION`).
 
-`state` is `complete`, `partial` (some entries `unknown`), `unreachable` (the
-probe SSH connection failed: every entry `unknown`; callers must not treat
-this as a transport failure), or `not_applicable` (the target is local).
+`state` is `complete`, `partial` (some entries `unknown`; `probe_failed` when
+SSH reached the host but the probe could not run there), `unreachable` (SSH
+itself failed: every entry `unknown`; callers must not treat this as a
+transport failure), or `not_applicable` (the target is local).
 Entry states are `available`, `unavailable` or `unknown`; `code` is a stable
 snake_case reason and `port` is present for et when known.
 

@@ -38,6 +38,7 @@ FAKE_SSH = """#!/bin/sh
 while [ "$#" -gt 0 ] && [ "$1" != "--" ]; do shift; done
 shift; shift
 [ -n "$FAKE_SSH_FAIL" ] && exit 255
+[ -n "$FAKE_NO_PYTHON" ] && FAKE_REMOTE_PATH=/nonexistent
 exec /usr/bin/env -i PATH="$FAKE_REMOTE_PATH" \
   SSH_CONNECTION="127.0.0.1 40000 127.0.0.1 22" /bin/sh -c "$1"
 """
@@ -165,6 +166,27 @@ class TransportProbeTests(unittest.TestCase):
         self.assertEqual(result["state"], "unreachable")
         for name in ("ssh", "et", "mosh"):
             self.assertEqual(result[name]["state"], "unknown")
+
+    def test_host_without_python_is_partial_not_unreachable(self) -> None:
+        host = self.host(mosh_server=True, etterminal=True)
+        result = self.prober(host, FAKE_NO_PYTHON="1").probe("loopback", 8.0)
+        self.assertEqual(result["state"], "partial")
+        self.assertEqual(result["mosh"], {"state": "unknown", "code": "probe_failed"})
+
+    def test_dropped_et_connect_cannot_starve_the_mosh_check(self) -> None:
+        host = self.host(mosh_server=True, etterminal=True)
+        server = listener()
+        self.addCleanup(server.close)
+        host.etserver(server.getsockname()[1])
+        prober = self.prober(host)
+
+        def dropped(_server, _port, wait):
+            time.sleep(wait)
+            return False
+        prober.tcp_open = dropped
+        result = prober.probe("loopback", 4.0)
+        self.assertEqual(result["mosh"]["state"], "available", result)
+        self.assertEqual(result["et"]["code"], "et_port_unreachable")
 
     def test_too_little_time_is_partial_without_running_ssh(self) -> None:
         prober = TransportProber(popen=lambda *a, **k: self.fail("probe ran"))

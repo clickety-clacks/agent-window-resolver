@@ -58,7 +58,11 @@ def config_port(path):
 
 def etserver_port():
     running, ports = False, []
-    for name in os.listdir("/proc"):
+    try:
+        names = os.listdir("/proc")
+    except OSError:
+        names = []
+    for name in names:
         if not name.isdigit():
             continue
         try:
@@ -243,6 +247,14 @@ class TransportProber:
         try:
             ready = _read_line(process, deadline)
             if ready is None:
+                # ssh exits 255 for its own failures; anything else means the
+                # host answered but the probe could not run there.
+                try:
+                    code = process.wait(timeout=max(0.0, min(0.5, deadline - time.monotonic())))
+                except subprocess.TimeoutExpired:
+                    code = None
+                if code is not None and code != 255:
+                    return unknown("partial", "probe_failed")
                 return unknown("unreachable", "remote_unreachable")
             try:
                 report = json.loads(ready)
@@ -283,6 +295,21 @@ class TransportProber:
             if isinstance(port, int) and not isinstance(port, bool)
             and 1 <= port <= 65535
         ][:8] if isinstance(ports, list) else []
+        # UDP first: the remote holds its mosh port open only briefly, and a
+        # silently dropped TCP connect must not use up that window.
+        udp_port = report.get("udpPort")
+        if report.get("moshServer") is not True:
+            result["mosh"] = entry("unavailable", "mosh_server_missing")
+        elif (server is None or isinstance(udp_port, bool)
+              or not isinstance(udp_port, int) or not 1 <= udp_port <= 65535):
+            result["mosh"] = entry("unknown", "mosh_udp_not_probed")
+        else:
+            wait = max(0.1, min(udp_wait, deadline - time.monotonic()))
+            result["mosh"] = (
+                entry("available", "mosh_udp_passing")
+                if self.udp_echo(server, udp_port, nonce, wait)
+                else entry("unavailable", "mosh_udp_blocked")
+            )
         if report.get("etserverRunning") is not True:
             result["et"] = entry("unavailable", "etserver_not_running")
         elif report.get("etterminal") is not True:
@@ -300,19 +327,6 @@ class TransportProber:
                 entry("available", "et_reachable", port=reachable)
                 if reachable is not None
                 else entry("unavailable", "et_port_unreachable", port=ports[0])
-            )
-        udp_port = report.get("udpPort")
-        if report.get("moshServer") is not True:
-            result["mosh"] = entry("unavailable", "mosh_server_missing")
-        elif (server is None or isinstance(udp_port, bool)
-              or not isinstance(udp_port, int) or not 1 <= udp_port <= 65535):
-            result["mosh"] = entry("unknown", "mosh_udp_not_probed")
-        else:
-            wait = max(0.1, min(udp_wait, deadline - time.monotonic()))
-            result["mosh"] = (
-                entry("available", "mosh_udp_passing")
-                if self.udp_echo(server, udp_port, nonce, wait)
-                else entry("unavailable", "mosh_udp_blocked")
             )
         if any(item["state"] == "unknown" for item in (result["et"], result["mosh"])):
             result["state"] = "partial"

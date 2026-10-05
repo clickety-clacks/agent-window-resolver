@@ -47,7 +47,8 @@ command is wrapped as `sh -lc '<command>'` (single quotes, `'` written as
 et's `-c` (et types its command into the remote shell). mosh receives
 `sh -lc <command>` as argv. ssh always gets `-tt`.
 
-With a fallback, a fixed POSIX script runs the primary transport; on a nonzero
+With a fallback, a fixed POSIX script, run by a login shell (`sh -lc`) so it
+sees the same PATH the client lookup did, runs the primary transport; on a nonzero
 exit it checks the host with `ssh -o BatchMode=yes true`. Only if that succeeds
 (the host is reachable, so the transport itself failed) does it delete the
 host's capability record. Then it execs `ssh -tt`. et and mosh exit 0 on a
@@ -71,6 +72,10 @@ user's settings:
 - `complete` or `partial` observations are written; `unreachable` and
   `not_applicable` are not (a roaming laptop on a hostile network must not
   overwrite what it learned elsewhere).
+- A record in which et, mosh and ssh are all `unknown` (the probe could not run
+  on the host, for example no python3 or a shell profile that prints) lasts
+  1 day instead of 7, so the host is neither re-probed on every click nor
+  written off for a week.
 - If the probe times out or the resolver predates 0.2.0, the app connects with
   no record (rule 4's mosh-first behaviour). Discovery never blocks a launch.
 - The fallback script deletes the record after a transport failure on a

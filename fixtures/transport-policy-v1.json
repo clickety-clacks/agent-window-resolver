@@ -3329,7 +3329,7 @@
       "staleFile": "/home/u/.local/state/app/transport-capabilities/gibson.json",
       "expect": [
         "sh",
-        "-c",
+        "-lc",
         "host=$1 remote=$2 port=$3 stale=$4 wrapped=$5 primary=$6\nif [ \"$primary\" = et ]; then\n  if [ -n \"$port\" ]; then et -p \"$port\" -c \"$wrapped\" -- \"$host\"; else et -c \"$wrapped\" -- \"$host\"; fi\nelse\n  mosh -- \"$host\" sh -lc \"$remote\"\nfi\nstatus=$?\n[ \"$status\" -eq 0 ] && exit 0\n# A failed start on a reachable host means the recorded capability is stale.\nif [ -n \"$stale\" ] && ssh -o BatchMode=yes -o ConnectTimeout=5 -- \"$host\" true >/dev/null 2>&1; then\n  rm -f -- \"$stale\"\nfi\nexec ssh -tt -- \"$host\" \"$wrapped\"",
         "transport-launch",
         "gibson",
@@ -3350,7 +3350,7 @@
       "staleFile": "",
       "expect": [
         "sh",
-        "-c",
+        "-lc",
         "host=$1 remote=$2 port=$3 stale=$4 wrapped=$5 primary=$6\nif [ \"$primary\" = et ]; then\n  if [ -n \"$port\" ]; then et -p \"$port\" -c \"$wrapped\" -- \"$host\"; else et -c \"$wrapped\" -- \"$host\"; fi\nelse\n  mosh -- \"$host\" sh -lc \"$remote\"\nfi\nstatus=$?\n[ \"$status\" -eq 0 ] && exit 0\n# A failed start on a reachable host means the recorded capability is stale.\nif [ -n \"$stale\" ] && ssh -o BatchMode=yes -o ConnectTimeout=5 -- \"$host\" true >/dev/null 2>&1; then\n  rm -f -- \"$stale\"\nfi\nexec ssh -tt -- \"$host\" \"$wrapped\"",
         "transport-launch",
         "gibson",
@@ -3371,7 +3371,7 @@
       "staleFile": "/s/gibson.json",
       "expect": [
         "sh",
-        "-c",
+        "-lc",
         "host=$1 remote=$2 port=$3 stale=$4 wrapped=$5 primary=$6\nif [ \"$primary\" = et ]; then\n  if [ -n \"$port\" ]; then et -p \"$port\" -c \"$wrapped\" -- \"$host\"; else et -c \"$wrapped\" -- \"$host\"; fi\nelse\n  mosh -- \"$host\" sh -lc \"$remote\"\nfi\nstatus=$?\n[ \"$status\" -eq 0 ] && exit 0\n# A failed start on a reachable host means the recorded capability is stale.\nif [ -n \"$stale\" ] && ssh -o BatchMode=yes -o ConnectTimeout=5 -- \"$host\" true >/dev/null 2>&1; then\n  rm -f -- \"$stale\"\nfi\nexec ssh -tt -- \"$host\" \"$wrapped\"",
         "transport-launch",
         "gibson",
