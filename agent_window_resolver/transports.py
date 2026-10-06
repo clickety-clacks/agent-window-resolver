@@ -37,11 +37,12 @@ _TCP_WAIT = 2.0
 _CODE = re.compile(r"^[a-z][a-z0-9_]{0,63}\Z")
 
 _REMOTE_TRANSPORT_PROBE = r"""
-import base64, json, os, random, re, select, shutil, socket, sys, time
+import base64, json, os, random, re, select, shutil, socket, subprocess, sys, time
 
 payload = sys.argv[1]
 cfg = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
 nonce = bytes.fromhex(cfg["nonce"])
+server_name = cfg.get("etserverName", "etserver")
 
 def emit(value):
     sys.stdout.write(json.dumps(value, separators=(",", ":")) + "\n")
@@ -61,13 +62,25 @@ def etserver_port():
     try:
         names = os.listdir("/proc")
     except OSError:
-        names = []
+        # No procfs (macOS): ask pgrep, and read the usual config locations.
+        try:
+            found = subprocess.run(["pgrep", "-x", server_name], stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.DEVNULL, timeout=3).returncode == 0
+        except (OSError, subprocess.SubprocessError):
+            found = False
+        if not found:
+            return False, []
+        for path in ("/opt/homebrew/etc/et.cfg", "/usr/local/etc/et.cfg", "/etc/et.cfg"):
+            port = config_port(path)
+            if port:
+                return True, [port]
+        return True, [2022]
     for name in names:
         if not name.isdigit():
             continue
         try:
             with open("/proc/%s/comm" % name, "rb") as stream:
-                if stream.read(64).strip() != b"etserver":
+                if stream.read(64).strip() != server_name.encode():
                     continue
             with open("/proc/%s/cmdline" % name, "rb") as stream:
                 argv = [os.fsdecode(item) for item in stream.read(65536).split(b"\0")]
@@ -207,7 +220,11 @@ class TransportProber:
         udp_echo: Callable[[str, int, bytes, float], bool] = _udp_echo,
         tcp_open: Callable[[str, int, float], bool] = _tcp_open,
         popen: Callable[..., Any] = subprocess.Popen,
+        etserver_name: str = "etserver",
     ) -> None:
+        # Tests use a different process name so a real etserver on the test
+        # machine cannot answer for their stand-in.
+        self.etserver_name = etserver_name
         self.ssh = ssh
         self.python = python
         self.environment = dict(environment) if environment is not None else None
@@ -230,7 +247,8 @@ class TransportProber:
             return unknown("partial", "deadline_exhausted")
         nonce = secrets.token_bytes(16)
         udp_wait = max(0.2, min(_UDP_WAIT, timeout / 3))
-        config = {"nonce": nonce.hex(), "udpWait": udp_wait + 0.5}
+        config = {"nonce": nonce.hex(), "udpWait": udp_wait + 0.5,
+                  "etserverName": self.etserver_name}
         payload = base64.urlsafe_b64encode(
             json.dumps(config, separators=(",", ":")).encode()
         ).decode().rstrip("=")

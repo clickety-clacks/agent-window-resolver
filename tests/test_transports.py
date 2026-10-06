@@ -66,8 +66,8 @@ class LoopbackHost:
         return {"PATH": "/usr/bin:/bin", "FAKE_REMOTE_PATH": str(self.remote_bin), **extra}
 
     def etserver(self, port: int) -> None:
-        """A process whose comm is ``etserver`` and whose argv names its port."""
-        script = self.root / "etserver"
+        """A stand-in etserver, under a name no real etserver uses."""
+        script = self.root / "awr-etserver"
         script.write_text("#!/bin/sh\nwhile :; do sleep 1; done\n")
         script.chmod(0o755)
         process = subprocess.Popen(
@@ -78,7 +78,7 @@ class LoopbackHost:
         deadline = time.monotonic() + 5
         while time.monotonic() < deadline:
             try:
-                if Path(f"/proc/{process.pid}/comm").read_text().strip() == "etserver":
+                if Path(f"/proc/{process.pid}/comm").read_text().strip() == "awr-etserver":
                     return
             except OSError:
                 pass
@@ -109,6 +109,7 @@ class TransportProbeTests(unittest.TestCase):
     def prober(self, host: LoopbackHost, **kwargs) -> TransportProber:
         return TransportProber(
             ssh=str(host.ssh), environment=host.environment(**kwargs),
+            etserver_name="awr-etserver",
         )
 
     def test_reachable_et_and_passing_udp_are_available(self) -> None:
