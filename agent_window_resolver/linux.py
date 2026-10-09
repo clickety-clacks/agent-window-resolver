@@ -1249,7 +1249,16 @@ class LinuxCollector:
     def _local_match_target(
         self, request: Request, deadline: Deadline
     ) -> TargetObservation:
-        """Collect only current local tmux client locations for ``match``.
+        assert request.target.tmux is not None
+        return self._local_clients(
+            request.target.tmux.socket, request.local_machine, deadline
+        )
+
+    def _local_clients(
+        self, requested_socket: SocketSelector | None,
+        local_machine: str, deadline: Deadline,
+    ) -> TargetObservation:
+        """Collect current local tmux client locations without strict proof.
 
         This is intentionally not a reduced strict target probe: no pane
         process, transport endpoint, or client ancestry is read here.  The
@@ -1257,9 +1266,6 @@ class LinuxCollector:
         compositor window process subtree and reports that combination as
         heuristic evidence.
         """
-        target = request.target
-        assert target.tmux is not None
-        requested_socket = target.tmux.socket
         base = ["tmux"]
         if requested_socket is not None:
             base += [
@@ -1345,7 +1351,7 @@ class LinuxCollector:
                 ))
                 continue
             try:
-                identity, _ = self._stat(client_pid, request.local_machine)
+                identity, _ = self._stat(client_pid, local_machine)
             except (OSError, ValueError, CollectionFailure) as error:
                 errors.append(
                     error.error if isinstance(error, CollectionFailure)
@@ -1362,9 +1368,18 @@ class LinuxCollector:
 
         selector = requested_socket or SocketSelector("path", socket_path)
         return TargetObservation(
-            request.local_machine, selector, socket_path, (), None,
+            local_machine, selector, socket_path, (), None,
             tuple(clients), "partial", tuple(errors),
         )
+
+    def collect_window_session(self, request: Any, deadline: Deadline) -> WindowObservation:
+        return self._window(request, request.window, deadline)
+
+    def local_session_clients(
+        self, socket: SocketSelector | None, local_machine: str,
+        deadline: Deadline,
+    ) -> tuple[TmuxClient, ...]:
+        return self._local_clients(socket, local_machine, deadline).clients
 
     def _target(
         self, request: Request, deadline: Deadline

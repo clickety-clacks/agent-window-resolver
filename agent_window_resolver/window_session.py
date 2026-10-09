@@ -7,11 +7,13 @@ import shlex
 from typing import Any, Mapping
 
 from .collector import (
-    SocketSelector, _ET_FLAGS, _ET_VALUE_OPTIONS, _et_host,
+    Deadline, SocketSelector, WindowObservation,
+    _ET_FLAGS, _ET_VALUE_OPTIONS, _et_host,
     transport_command_hint,
 )
+from .linux import CollectionFailure
 from .model import (
-    Limits, RequestError, Window, _exact_keys, _machine, _mapping,
+    VERSION, Limits, RequestError, Window, _exact_keys, _machine, _mapping,
     _parse_limits, _plain, canonical_machine, parse_window,
 )
 
@@ -130,6 +132,115 @@ def transport_destination(argv: tuple[str, ...]) -> TransportDestination | None:
         values.pop(0)
     host = _host(values[0]) if values else None
     return TransportDestination(kind, host, None, None) if host else None
+
+
+def _reason(code: str, source: str, message: str, retryable: bool = False) -> dict[str, Any]:
+    return {"code": code, "source": source, "message": message[:512],
+            "retryable": retryable}
+
+
+def _response(request: WindowSessionRequest, status: str,
+              session: dict[str, str] | None = None,
+              reasons: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    return {
+        "schema": RESPONSE_SCHEMA, "resolverVersion": VERSION,
+        "requestId": request.request_id, "operation": OPERATION,
+        "status": status, "session": session, "reasons": reasons or [],
+    }
+
+
+def _tmux_socket(argv: tuple[str, ...]) -> SocketSelector | None:
+    values = list(argv[1:])
+    selectors: list[SocketSelector] = []
+    for index, value in enumerate(values[:-1]):
+        if value in {"-L", "-S"} and values[index + 1]:
+            selectors.append(SocketSelector(
+                "name" if value == "-L" else "path", values[index + 1]
+            ))
+    return selectors[0] if len(selectors) == 1 else None
+
+
+class WindowSessionReader:
+    """Read a current session only from sole-owner, live window evidence."""
+
+    def resolve(self, request: WindowSessionRequest, collector: Any) -> dict[str, Any]:
+        if sum(item.pid == request.window.pid for item in request.windows) != 1:
+            return _response(request, "none")
+        deadline = Deadline(request.limits.deadline_ms)
+        try:
+            observation: WindowObservation = collector.collect_window_session(request, deadline)
+        except CollectionFailure as error:
+            issue = error.error
+            return _response(request, "unknown", reasons=[_reason(
+                issue.code, issue.source, issue.message, issue.retryable
+            )])
+        except (OSError, ValueError):
+            return _response(request, "unknown", reasons=[_reason(
+                "local_collection_failed", "proc", "window process read failed", True
+            )])
+        if observation.collection_state != "complete":
+            return _response(request, "unknown", reasons=[
+                _reason(item.code, item.source, item.message, item.retryable)
+                for item in observation.errors
+            ] or [_reason("local_collection_incomplete", "proc",
+                           "window process read was incomplete", True)])
+        root = [node for node in observation.processes
+                if node.identity.pid == request.window.pid
+                and node.identity.start_time_ticks == request.window.start_time_ticks]
+        if len(root) != 1:
+            return _response(request, "unknown", reasons=[_reason(
+                "window_identity_changed", "proc", "window PID/start ticks changed", True
+            )])
+        transports = [node for node in observation.processes
+                      if node.argv and PurePath(node.argv[0]).name
+                      in {"ssh", "et", "mosh", "mosh-client"}]
+        tmux = [node for node in observation.processes
+                if node.argv and PurePath(node.argv[0]).name == "tmux"]
+        if transports:
+            if len(transports) != 1:
+                return _response(request, "unknown", reasons=[_reason(
+                    "transport_ambiguous", "proc", "more than one transport is in the window tree"
+                )])
+            destination = transport_destination(transports[0].argv)
+            if destination is None:
+                return _response(request, "unknown", reasons=[_reason(
+                    "transport_unparsed", "argv", "transport destination is unknown"
+                )])
+            # The remote read is a separate collector stage. It must succeed
+            # before a current session can be attributed to this window.
+            return _response(request, "unknown", reasons=[_reason(
+                "remote_read_pending", "transport", "remote session read is unavailable", True
+            )])
+        if len(tmux) == 0:
+            return _response(request, "none")
+        if len(tmux) != 1:
+            return _response(request, "unknown", reasons=[_reason(
+                "tmux_client_ambiguous", "proc", "more than one tmux process is in the window tree"
+            )])
+        try:
+            clients = collector.local_session_clients(
+                _tmux_socket(tmux[0].argv), request.local_machine, deadline
+            )
+        except CollectionFailure as error:
+            issue = error.error
+            return _response(request, "unknown", reasons=[_reason(
+                issue.code, issue.source, issue.message, issue.retryable
+            )])
+        except (OSError, ValueError):
+            return _response(request, "unknown", reasons=[_reason(
+                "local_tmux_unavailable", "tmux", "local tmux read failed", True
+            )])
+        matches = [client for client in clients
+                   if client.process.pid == tmux[0].identity.pid
+                   and client.process.start_time_ticks == tmux[0].identity.start_time_ticks]
+        if len(matches) != 1 or not matches[0].current_session:
+            return _response(request, "unknown", reasons=[_reason(
+                "tmux_client_unattributed", "tmux", "current tmux client was not uniquely found", True
+            )])
+        return _response(request, "found", {
+            "name": matches[0].current_session, "basis": "current",
+            "method": "local-client",
+        })
 
 
 def _window_key(window: Window) -> tuple[str, str, int, str]:
