@@ -29,6 +29,7 @@ from .collector import (
     transport_socket_eligible,
 )
 from .transports import TransportProber, unknown as _unknown_transports
+from .session_probe import REMOTE_SESSION_PROBE
 from .model import (
     MAX_PID,
     ProcessIdentity,
@@ -1379,7 +1380,141 @@ class LinuxCollector:
         self, socket: SocketSelector | None, local_machine: str,
         deadline: Deadline,
     ) -> tuple[TmuxClient, ...]:
-        return self._local_clients(socket, local_machine, deadline).clients
+        before = self._local_clients(socket, local_machine, deadline)
+        after = self._local_clients(socket, local_machine, deadline)
+        if (before.actual_socket_path != after.actual_socket_path
+                or before.clients != after.clients):
+            raise CollectionFailure("local_tmux_changed", "tmux",
+                                    "local tmux clients changed during read", True)
+        return before.clients
+
+    def remote_session_read(
+        self, host: str, socket: SocketSelector | None,
+        need_counts: bool, deadline: Deadline,
+    ) -> dict[str, Any]:
+        config: dict[str, Any] = {"needCounts": need_counts}
+        if socket is not None:
+            config["socket"] = {"kind": socket.kind, "value": socket.value}
+        payload = base64.urlsafe_b64encode(
+            json.dumps(config, separators=(",", ":")).encode()
+        ).decode().rstrip("=")
+        remote = shlex.join([self.python, "-c", REMOTE_SESSION_PROBE, payload])
+        argv = [
+            self.ssh, "-o", "BatchMode=yes", "-o", "ConnectTimeout=5",
+            "-o", "ControlMaster=no", "-o", "ControlPath=none",
+            "-o", "ClearAllForwardings=yes", "-o", "PermitLocalCommand=no",
+            "-T", "--", host, remote,
+        ]
+        result = self.io.run(
+            argv, timeout=min(deadline.remaining(), 12.0),
+            max_stdout=65_536, max_stderr=16_384, env=self._environment(),
+        )
+        if result.timed_out or result.returncode != 0:
+            raise CollectionFailure("remote_unreachable", "transport",
+                                    "remote session read failed", True)
+        if result.truncated:
+            raise CollectionFailure("probe_output_too_large", "transport",
+                                    "remote session read exceeded its bound", True)
+        try:
+            data = json.loads(result.stdout)
+            if not isinstance(data, dict) or set(data) != {
+                "host", "clients", "terminalEnds", "terminalEndCounts", "incomplete"
+            }:
+                raise ValueError("invalid remote envelope")
+            name = data["host"]
+            if (not isinstance(name, str) or not 1 <= len(name) <= 255
+                    or any(ord(char) < 32 or ord(char) == 127 for char in name)):
+                raise ValueError("invalid remote host")
+            if not isinstance(data["incomplete"], bool):
+                raise ValueError("invalid remote completeness")
+            clients = data["clients"]
+            if not isinstance(clients, list) or len(clients) > _MAX_CLIENTS:
+                raise ValueError("invalid remote client count")
+            for client in clients:
+                if not isinstance(client, dict) or set(client) != {
+                    "pid", "session", "remoteEndPid", "kind", "launchTarget"
+                }:
+                    raise ValueError("invalid remote client")
+                if (isinstance(client["pid"], bool) or not isinstance(client["pid"], int)
+                        or not 1 <= client["pid"] <= MAX_PID):
+                    raise ValueError("invalid remote client PID")
+                if (not isinstance(client["session"], str)
+                        or not 1 <= len(client["session"]) <= 256
+                        or any(ord(char) < 32 or ord(char) == 127
+                               for char in client["session"])):
+                    raise ValueError("invalid remote session")
+                end_pid = client["remoteEndPid"]
+                if end_pid is not None and (isinstance(end_pid, bool)
+                                            or not isinstance(end_pid, int)
+                                            or not 1 <= end_pid <= MAX_PID):
+                    raise ValueError("invalid remote end PID")
+                if client["kind"] is not None and client["kind"] not in {
+                    "ssh", "et", "mosh"
+                }:
+                    raise ValueError("invalid remote end kind")
+                target = client["launchTarget"]
+                if target is not None and (not isinstance(target, str)
+                                           or not 1 <= len(target) <= 256):
+                    raise ValueError("invalid remote launch target")
+            ends = data["terminalEnds"]
+            counts = data["terminalEndCounts"]
+            if ends is not None:
+                if (not isinstance(ends, dict) or set(ends) != {"ssh", "et", "mosh"}
+                        or any(not isinstance(pids, list) or len(pids) > _MAX_CLIENTS
+                               or any(isinstance(pid, bool) or not isinstance(pid, int)
+                                      or not 1 <= pid <= MAX_PID for pid in pids)
+                               for pids in ends.values())):
+                    raise ValueError("invalid remote end counts")
+                if (not isinstance(counts, dict) or set(counts) != set(ends)
+                        or any(isinstance(counts[key], bool)
+                               or not isinstance(counts[key], int)
+                               or counts[key] != len(ends[key]) for key in ends)):
+                    raise ValueError("remote end count mismatch")
+            elif counts is not None:
+                raise ValueError("unexpected remote end counts")
+            return data
+        except (ValueError, TypeError, UnicodeDecodeError, json.JSONDecodeError) as error:
+            raise CollectionFailure("remote_output_invalid", "transport",
+                                    "remote session result was invalid", True) from error
+
+    def local_transport_clients(
+        self, kind: str, host: str, machine: str, deadline: Deadline,
+    ) -> tuple[ProcessIdentity, ...]:
+        """Count live local connections for SL-7 before starting our SSH read."""
+        from .window_session import transport_destination
+
+        matches: list[ProcessIdentity] = []
+        try:
+            entries = self.io.listdir(self.proc_root, 32_768)
+            for name in entries:
+                if not name.isdigit():
+                    continue
+                if deadline.expired():
+                    raise CollectionFailure("deadline_exceeded", "proc",
+                                            "local transport count timed out", True)
+                pid = int(name)
+                try:
+                    identity, _ = self._stat(pid, machine)
+                    raw = self.io.read_bytes(self._path(pid, "cmdline"), _MAX_PROC_BYTES)
+                    after, _ = self._stat(pid, machine)
+                except (FileNotFoundError, ProcessLookupError):
+                    continue
+                if identity != after:
+                    raise CollectionFailure("process_identity_changed", "proc",
+                                            "local transport changed during count", True)
+                argv = tuple(item for item in raw.decode("utf-8", "replace").split("\0")
+                             if item)
+                destination = transport_destination(argv)
+                if destination is not None and destination.kind == kind and machine_matches(
+                    destination.host, host
+                ):
+                    matches.append(identity)
+        except CollectionFailure:
+            raise
+        except (OSError, ValueError) as error:
+            raise CollectionFailure("local_transport_scan_incomplete", "proc",
+                                    "local transport count was incomplete", True) from error
+        return tuple(matches)
 
     def _target(
         self, request: Request, deadline: Deadline

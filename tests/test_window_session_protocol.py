@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import unittest
+import json
+from pathlib import Path
 
 from agent_window_resolver.model import RequestError, parse_request
 from agent_window_resolver.window_session import (
@@ -22,6 +24,17 @@ def request() -> dict:
 
 
 class WindowSessionProtocolTests(unittest.TestCase):
+    def test_standalone_schema_reuses_exact_v1_identity_limits(self) -> None:
+        folder = Path(__file__).parents[1] / "schema"
+        current = json.loads((folder / "window-session-v1.json").read_text())
+        legacy = json.loads((folder / "v1.json").read_text())
+        self.assertEqual(current["oneOf"], [
+            {"$ref": "#/$defs/request"}, {"$ref": "#/$defs/response"},
+        ])
+        for name in ("requestId", "machine", "pid", "ticks", "window", "limits", "reason"):
+            with self.subTest(definition=name):
+                self.assertEqual(current["$defs"][name], legacy["$defs"][name])
+
     def test_new_request_parses_without_changing_v1_acceptance(self) -> None:
         parsed = parse_window_session_request(request())
         self.assertEqual(parsed.window.pid, 102)

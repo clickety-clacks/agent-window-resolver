@@ -257,7 +257,14 @@ def run(
     active_collector = collector if collector is not None else LinuxCollector()
     if session_schema:
         active_reader = session_reader if session_reader is not None else WindowSessionReader()
-        response = active_reader.resolve(request, active_collector)
+        try:
+            response = active_reader.resolve(request, active_collector)
+        except Exception:
+            response = _session_error_response(
+                "invalid", "internal_error", "internal",
+                "window session read failed internally",
+                request_id=request.request_id,
+            )
     else:
         active_resolver = resolver if resolver is not None else Resolver()
         response = active_resolver.resolve(request, active_collector)

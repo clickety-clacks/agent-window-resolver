@@ -14,7 +14,7 @@ from .collector import (
 from .linux import CollectionFailure
 from .model import (
     VERSION, Limits, RequestError, Window, _exact_keys, _machine, _mapping,
-    _parse_limits, _plain, canonical_machine, parse_window,
+    _parse_limits, _plain, canonical_machine, parse_socket, parse_window,
 )
 
 REQUEST_SCHEMA = "agent-window-resolver.window-session.request.v1"
@@ -60,10 +60,17 @@ def transport_destination(argv: tuple[str, ...]) -> TransportDestination | None:
     if launch is not None:
         kind, host, command = launch
         target = command.target
+        socket = command.socket
+        if socket is not None:
+            try:
+                socket = parse_socket({"kind": socket.kind, "value": socket.value})
+            except RequestError:
+                return None
+        host = _host(host)
         return TransportDestination(
-            kind, _host(host) or "", target.session if target.session_kind == "name" else None,
-            command.socket,
-        ) if _host(host) is not None else None
+            kind, host, target.session if target.session_kind == "name" else None,
+            socket,
+        ) if host is not None else None
 
     if not argv:
         return None
@@ -149,15 +156,22 @@ def _response(request: WindowSessionRequest, status: str,
     }
 
 
-def _tmux_socket(argv: tuple[str, ...]) -> SocketSelector | None:
+def _tmux_socket(argv: tuple[str, ...]) -> tuple[SocketSelector | None, bool]:
     values = list(argv[1:])
     selectors: list[SocketSelector] = []
-    for index, value in enumerate(values[:-1]):
-        if value in {"-L", "-S"} and values[index + 1]:
-            selectors.append(SocketSelector(
-                "name" if value == "-L" else "path", values[index + 1]
-            ))
-    return selectors[0] if len(selectors) == 1 else None
+    for index, value in enumerate(values):
+        if value not in {"-L", "-S"}:
+            continue
+        if index + 1 >= len(values):
+            return None, False
+        try:
+            selectors.append(parse_socket({
+                "kind": "name" if value == "-L" else "path",
+                "value": values[index + 1],
+            }))
+        except RequestError:
+            return None, False
+    return (selectors[0], True) if len(selectors) == 1 else (None, not selectors)
 
 
 class WindowSessionReader:
@@ -206,20 +220,23 @@ class WindowSessionReader:
                 return _response(request, "unknown", reasons=[_reason(
                     "transport_unparsed", "argv", "transport destination is unknown"
                 )])
-            # The remote read is a separate collector stage. It must succeed
-            # before a current session can be attributed to this window.
-            return _response(request, "unknown", reasons=[_reason(
-                "remote_read_pending", "transport", "remote session read is unavailable", True
-            )])
+            return self._remote_session(
+                request, collector, deadline, transports[0].identity, destination
+            )
         if len(tmux) == 0:
             return _response(request, "none")
         if len(tmux) != 1:
             return _response(request, "unknown", reasons=[_reason(
                 "tmux_client_ambiguous", "proc", "more than one tmux process is in the window tree"
             )])
+        socket, valid_socket = _tmux_socket(tmux[0].argv)
+        if not valid_socket:
+            return _response(request, "unknown", reasons=[_reason(
+                "tmux_socket_ambiguous", "argv", "tmux socket selector was ambiguous"
+            )])
         try:
             clients = collector.local_session_clients(
-                _tmux_socket(tmux[0].argv), request.local_machine, deadline
+                socket, request.local_machine, deadline
             )
         except CollectionFailure as error:
             issue = error.error
@@ -241,6 +258,93 @@ class WindowSessionReader:
             "name": matches[0].current_session, "basis": "current",
             "method": "local-client",
         })
+
+    def _remote_session(
+        self, request: WindowSessionRequest, collector: Any, deadline: Deadline,
+        transport_identity: Any, destination: TransportDestination,
+    ) -> dict[str, Any]:
+        launch = destination.launch_session
+
+        def fallback(code: str, message: str, retryable: bool = False) -> dict[str, Any]:
+            reason = _reason(code, "transport", message, retryable)
+            if launch is None:
+                return _response(request, "unknown", reasons=[reason])
+            return _response(request, "found", {
+                "name": launch, "host": destination.host,
+                "transport": destination.kind, "basis": "launch", "method": "launch",
+            }, [reason])
+
+        if launch is None:
+            try:
+                local_clients = collector.local_transport_clients(
+                    destination.kind, destination.host, request.local_machine, deadline
+                )
+            except CollectionFailure as error:
+                return fallback(error.error.code, error.error.message, error.error.retryable)
+            except (OSError, ValueError):
+                return fallback("local_transport_scan_incomplete",
+                                "local transport count was incomplete", True)
+            if (len(local_clients) != 1
+                    or local_clients[0].pid != transport_identity.pid
+                    or local_clients[0].start_time_ticks != transport_identity.start_time_ticks):
+                return _response(request, "none")
+        try:
+            remote = collector.remote_session_read(
+                destination.host, destination.socket, launch is None, deadline
+            )
+        except CollectionFailure as error:
+            return fallback(error.error.code, error.error.message, error.error.retryable)
+        except (OSError, ValueError):
+            return fallback("remote_unreachable", "remote session read failed", True)
+        if not isinstance(remote, dict) or not isinstance(remote.get("host"), str):
+            return fallback("remote_output_invalid", "remote session result was invalid", True)
+        from .model import machine_matches
+        if not machine_matches(destination.host, remote["host"]):
+            return fallback("remote_host_mismatch", "remote host did not match transport", True)
+        if remote.get("incomplete"):
+            return fallback("remote_collection_incomplete",
+                            "remote tmux collection was incomplete", True)
+        if launch is None:
+            try:
+                local_clients_after = collector.local_transport_clients(
+                    destination.kind, destination.host, request.local_machine, deadline
+                )
+            except CollectionFailure as error:
+                return fallback(error.error.code, error.error.message, error.error.retryable)
+            except (OSError, ValueError):
+                return fallback("local_transport_scan_incomplete",
+                                "local transport count was incomplete", True)
+            if local_clients_after != local_clients:
+                return fallback("local_transport_changed",
+                                "local transport count changed during read", True)
+        clients = remote["clients"]
+        if launch is not None:
+            qualified = [item["session"] for item in clients
+                         if item["kind"] == destination.kind
+                         and item["launchTarget"] == launch
+                         and item["remoteEndPid"] is not None]
+            if qualified and len(set(qualified)) == 1:
+                return _response(request, "found", {
+                    "name": qualified[0], "host": destination.host,
+                    "transport": destination.kind, "basis": "current",
+                    "method": "remote-ancestry",
+                })
+            return fallback("current_unattributed",
+                            "current session could not be attributed")
+        ends = remote.get("terminalEnds")
+        pids = ends.get(destination.kind) if isinstance(ends, dict) else None
+        if not isinstance(pids, list) or len(pids) != 1:
+            return _response(request, "none")
+        qualified = [item["session"] for item in clients
+                     if item["kind"] == destination.kind
+                     and item["remoteEndPid"] == pids[0]]
+        if qualified and len(set(qualified)) == 1:
+            return _response(request, "found", {
+                "name": qualified[0], "host": destination.host,
+                "transport": destination.kind, "basis": "current",
+                "method": "remote-unique-connection",
+            })
+        return _response(request, "none")
 
 
 def _window_key(window: Window) -> tuple[str, str, int, str]:
