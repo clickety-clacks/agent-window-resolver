@@ -52,32 +52,49 @@ def ancestry(pid):
 def run_tmux(command):
     env = dict(os.environ)
     env.pop("TMUX", None)
+    env["LC_ALL"] = "C"
     process = subprocess.Popen(command, stdin=subprocess.DEVNULL,
-                               stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                close_fds=True, env=env)
     select = selectors.DefaultSelector()
-    output = bytearray()
+    output, errors = bytearray(), bytearray()
     deadline = time.monotonic() + 5.0
     try:
-        select.register(process.stdout, selectors.EVENT_READ)
-        while True:
+        select.register(process.stdout, selectors.EVENT_READ, output)
+        select.register(process.stderr, selectors.EVENT_READ, errors)
+        while select.get_map():
             remaining = deadline - time.monotonic()
-            if remaining <= 0 or not select.select(remaining):
+            events = select.select(remaining) if remaining > 0 else []
+            if not events:
                 raise RuntimeError("tmux read timed out")
-            chunk = os.read(process.stdout.fileno(), min(8192, 65537 - len(output)))
-            if not chunk:
-                break
-            output.extend(chunk)
-            if len(output) > 65536:
-                raise RuntimeError("tmux output bound exceeded")
+            for key, _ in events:
+                buffer = key.data
+                limit = 65536 if buffer is output else 4096
+                chunk = os.read(key.fileobj.fileno(), min(8192, limit + 1 - len(buffer)))
+                if not chunk:
+                    select.unregister(key.fileobj)
+                    continue
+                buffer.extend(chunk)
+                if len(buffer) > limit:
+                    raise RuntimeError("tmux output bound exceeded")
         process.wait(timeout=max(.1, deadline - time.monotonic()))
-        return output.decode("utf-8", "strict") if process.returncode == 0 else None
+        if process.returncode == 0:
+            return output.decode("utf-8", "strict")
+        diagnostic = errors.decode("utf-8", "replace").strip()
+        if diagnostic == "no clients":
+            return ""
+        if (diagnostic.startswith("no server running") or
+                (diagnostic.startswith("error connecting to ") and
+                 "No such file or directory" in diagnostic)):
+            return None
+        raise RuntimeError("tmux list-clients failed")
     finally:
         select.close()
         if process.poll() is None:
             process.kill()
             process.wait()
         process.stdout.close()
+        process.stderr.close()
 
 def client_rows():
     selectors = [None]
@@ -91,7 +108,9 @@ def client_rows():
             base += ["-L" if selector["kind"] == "name" else "-S", selector["value"]]
         output = run_tmux(base + ["list-clients", "-F", "#{client_pid}\t#{client_session}"])
         if output is None:
-            incomplete = True
+            # The named socket is requested evidence. The default is optional
+            # when it has no server, but any other tmux failure remains unknown.
+            incomplete = incomplete or selector is not None
             continue
         lines = output.splitlines()
         if len(lines) > MAX_CLIENTS:
@@ -113,6 +132,8 @@ def launch_target(command):
         values = values[2:]
     if len(values) >= 3 and values[0] in ("attach", "attach-session") and values[1] == "-t":
         target = values[2]
+    elif len(values) >= 4 and values[0] in ("new", "new-session") and values[1:3] == ["-A", "-s"]:
+        target = values[3]
     elif len(values) >= 3 and values[0] in ("new", "new-session") and values[1] in ("-s", "-As"):
         target = values[2]
     else:

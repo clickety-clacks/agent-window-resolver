@@ -1,9 +1,14 @@
 """Current local session is read from the client, not its launch argv."""
 from __future__ import annotations
 
+import ast
 from io import BytesIO
 import json
+import os
+from pathlib import Path
+import tempfile
 import unittest
+from unittest.mock import patch
 
 from agent_window_resolver.cli import run
 from agent_window_resolver.collector import (
@@ -50,6 +55,95 @@ def observation(*nodes: ProcessNode) -> WindowObservation:
 
 
 class WindowSessionReaderTests(unittest.TestCase):
+    @staticmethod
+    def remote_probe_functions():
+        """Execute the shipped fixed program's definitions without its live read."""
+        program = ast.parse(REMOTE_SESSION_PROBE)
+        definitions = [node for node in program.body
+                       if isinstance(node, (ast.Import, ast.FunctionDef)) or
+                       (isinstance(node, ast.Assign) and
+                        all(isinstance(target, ast.Name) and
+                            (target.id.startswith("MAX_") or target.id == "END_NAMES")
+                            for target in node.targets))]
+        namespace = {}
+        exec(compile(ast.Module(body=definitions, type_ignores=[]),
+                     "<fixed-remote-session-probe>", "exec"), namespace)
+        return namespace
+
+    def test_fixed_probe_accepts_spaced_attach_if_present_launch(self) -> None:
+        parse = self.remote_probe_functions()["launch_target"]
+        self.assertEqual(parse(["tmux", "new-session", "-A", "-s", "build"]),
+                         "build")
+        observed, _ = self.remote_window(
+            ("et", "example-host", "-c", "tmux new-session -A -s build")
+        )
+        collector = StaticSessionCollector(observed, remote={
+            "host": "example-host", "incomplete": False,
+            "clients": [{"session": "deploy", "kind": "et",
+                         "remoteEndPid": 900,
+                         "launchTarget": parse(["tmux", "new-session", "-A", "-s", "build"])}],
+            "terminalEnds": None,
+        })
+        result = WindowSessionReader().resolve(
+            parse_window_session_request(request()), collector
+        )
+        self.assertEqual(result["session"]["name"], "deploy")
+        self.assertEqual(result["session"]["basis"], "current")
+
+    def test_fixed_probe_keeps_named_client_when_default_server_absent(self) -> None:
+        namespace = self.remote_probe_functions()
+        namespace["cfg"] = {"socket": {"kind": "name", "value": "work"}}
+        with tempfile.TemporaryDirectory() as directory:
+            executable = Path(directory) / "tmux"
+            executable.write_text(
+                "#!/bin/sh\n"
+                "if [ \"$1\" = \"-L\" ]; then\n"
+                "  printf '101\\tdeploy\\n'\n"
+                "  exit 0\n"
+                "fi\n"
+                "printf 'no server running on /tmp/tmux-test/default\\n' >&2\n"
+                "exit 1\n"
+            )
+            executable.chmod(0o700)
+            with patch.dict(os.environ, {"PATH": directory + os.pathsep + os.environ["PATH"]}):
+                rows, incomplete = namespace["client_rows"]()
+        self.assertEqual(rows, [(101, "deploy")])
+        self.assertFalse(incomplete)
+
+        observed, _ = self.remote_window(
+            ("et", "example-host", "-c", "tmux -L work attach -t '=build'")
+        )
+        collector = StaticSessionCollector(observed, remote={
+            "host": "example-host", "incomplete": incomplete,
+            "clients": [{"session": rows[0][1], "kind": "et",
+                         "remoteEndPid": 900, "launchTarget": "build"}],
+            "terminalEnds": None,
+        })
+        result = WindowSessionReader().resolve(
+            parse_window_session_request(request()), collector
+        )
+        self.assertEqual(result["session"]["name"], "deploy")
+        self.assertEqual(result["session"]["basis"], "current")
+
+    def test_fixed_probe_rejects_failed_named_socket_read(self) -> None:
+        namespace = self.remote_probe_functions()
+        namespace["cfg"] = {"socket": {"kind": "name", "value": "work"}}
+        with tempfile.TemporaryDirectory() as directory:
+            executable = Path(directory) / "tmux"
+            executable.write_text(
+                "#!/bin/sh\n"
+                "if [ \"$1\" = \"-L\" ]; then\n"
+                "  printf 'permission denied\\n' >&2\n"
+                "  exit 1\n"
+                "fi\n"
+                "printf 'no server running on /tmp/tmux-test/default\\n' >&2\n"
+                "exit 1\n"
+            )
+            executable.chmod(0o700)
+            with patch.dict(os.environ, {"PATH": directory + os.pathsep + os.environ["PATH"]}):
+                with self.assertRaisesRegex(RuntimeError, "tmux list-clients failed"):
+                    namespace["client_rows"]()
+
     def test_local_transport_count_uses_live_pid_and_start_ticks(self) -> None:
         def stat_row(pid, ticks):
             fields = ["S", "1"] + ["0"] * 18
