@@ -1,0 +1,403 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agent-window-resolver.invalid/schema/window-session-v1.json",
+  "title": "Agent Window Resolver window session protocol v1",
+  "$defs": {
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "stableId",
+        "address",
+        "pid",
+        "startTimeTicks"
+      ],
+      "properties": {
+        "stableId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
+        },
+        "address": {
+          "type": "string",
+          "pattern": "^0x[0-9a-f]{1,32}(?![\\s\\S])"
+        },
+        "pid": {
+          "$ref": "#/$defs/pid"
+        },
+        "startTimeTicks": {
+          "$ref": "#/$defs/ticks"
+        },
+        "class": {
+          "type": "string",
+          "maxLength": 256,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+        },
+        "title": {
+          "type": "string",
+          "maxLength": 512,
+          "pattern": "^[^\\u0000-\\u001f\\u007f]*(?![\\s\\S])"
+        }
+      }
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "deadlineMs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20000
+        },
+        "maxRequestBytes": {
+          "type": "integer",
+          "minimum": 1024,
+          "maximum": 262144
+        },
+        "maxStdoutBytes": {
+          "type": "integer",
+          "minimum": 4096,
+          "maximum": 1048576
+        },
+        "maxStderrBytes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 16384
+        }
+      }
+    },
+    "requestId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+(?![\\s\\S])"
+    },
+    "machine": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_.:-]*(?![\\s\\S])"
+    },
+    "reason": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "code",
+        "source",
+        "message",
+        "retryable"
+      ],
+      "properties": {
+        "code": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_]{0,63}(?![\\s\\S])"
+        },
+        "source": {
+          "enum": [
+            "request",
+            "caller",
+            "compositor",
+            "proc",
+            "argv",
+            "tmux",
+            "transport",
+            "socket",
+            "ssh_environment",
+            "roster",
+            "dependency",
+            "internal"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "request": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "requestId",
+        "operation",
+        "window",
+        "windows",
+        "local"
+      ],
+      "properties": {
+        "schema": {
+          "const": "agent-window-resolver.window-session.request.v1"
+        },
+        "requestId": {
+          "$ref": "#/$defs/requestId"
+        },
+        "operation": {
+          "const": "window-session"
+        },
+        "window": {
+          "$ref": "#/$defs/window"
+        },
+        "windows": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 4096,
+          "items": {
+            "$ref": "#/$defs/window"
+          }
+        },
+        "local": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "machine"
+          ],
+          "properties": {
+            "machine": {
+              "$ref": "#/$defs/machine"
+            }
+          }
+        },
+        "limits": {
+          "$ref": "#/$defs/limits"
+        }
+      }
+    },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "basis",
+        "method"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "host": {
+          "$ref": "#/$defs/machine"
+        },
+        "transport": {
+          "enum": [
+            "ssh",
+            "mosh",
+            "et"
+          ]
+        },
+        "basis": {
+          "enum": [
+            "current",
+            "launch"
+          ]
+        },
+        "method": {
+          "enum": [
+            "local-client",
+            "remote-ancestry",
+            "remote-unique-connection",
+            "remote-endpoint",
+            "launch"
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "basis": {
+                "const": "launch"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "method": {
+                "const": "launch"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": [
+              "host"
+            ]
+          },
+          "then": {
+            "required": [
+              "transport"
+            ]
+          },
+          "else": {
+            "not": {
+              "required": [
+                "transport"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "response": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema",
+        "requestId",
+        "operation",
+        "status",
+        "session",
+        "reasons"
+      ],
+      "properties": {
+        "schema": {
+          "const": "agent-window-resolver.window-session.response.v1"
+        },
+        "resolverVersion": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+        },
+        "requestId": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/requestId"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "operation": {
+          "const": "window-session"
+        },
+        "status": {
+          "enum": [
+            "found",
+            "none",
+            "unknown",
+            "invalid"
+          ]
+        },
+        "session": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/session"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "reasons": {
+          "type": "array",
+          "maxItems": 128,
+          "items": {
+            "$ref": "#/$defs/reason"
+          }
+        },
+        "uncertainty": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "transport", "host", "window"],
+          "properties": {
+            "code": {"const": "et_hint_not_exact_proof"},
+            "transport": {"const": "et"},
+            "host": {"$ref": "#/$defs/machine"},
+            "window": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["stableId", "address", "pid", "startTimeTicks"],
+              "properties": {
+                "stableId": {"type": "string", "minLength": 1, "maxLength": 256},
+                "address": {"type": "string", "pattern": "^0x[0-9a-f]{1,32}(?![\\s\\S])"},
+                "pid": {"$ref": "#/$defs/pid"},
+                "startTimeTicks": {"$ref": "#/$defs/ticks"}
+              }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["uncertainty"]
+          },
+          "then": {
+            "properties": {
+              "status": {"const": "none"}
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "const": "found"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "session": {
+                "$ref": "#/$defs/session"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "session": {
+                "type": "null"
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "status": {
+                "enum": [
+                  "unknown",
+                  "invalid"
+                ]
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "reasons": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      ]
+    },
+    "pid": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 4194304
+    },
+    "ticks": {
+      "type": "string",
+      "maxLength": 20,
+      "pattern": "^(0|[1-9][0-9]{0,19})(?![\\s\\S])"
+    }
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/request"
+    },
+    {
+      "$ref": "#/$defs/response"
+    }
+  ]
+}

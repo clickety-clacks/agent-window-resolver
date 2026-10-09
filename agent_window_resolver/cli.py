@@ -13,6 +13,11 @@ from typing import Any, BinaryIO, Mapping, Sequence
 from .linux import LinuxCollector
 from .model import VERSION, Limits, Request, RequestError, parse_request
 from .resolver import Resolver
+from .window_session import (
+    OPERATION as SESSION_OPERATION, REQUEST_SCHEMA as SESSION_REQUEST_SCHEMA,
+    RESPONSE_SCHEMA as SESSION_RESPONSE_SCHEMA, WindowSessionReader,
+    parse_window_session_request,
+)
 
 _HARD_REQUEST_BYTES = 262_144
 _HARD_STDOUT_BYTES = 1_048_576
@@ -53,6 +58,21 @@ def _error_response(
     if relation in {"visible_exact", "linked_client"}:
         result["requestedRelation"] = relation
     return result
+
+
+def _session_error_response(
+    status: str, code: str, source: str, message: str, *,
+    request_id: str | None = None, operation: str | None = None,
+    relation: str | None = None, retryable: bool = False,
+) -> dict[str, Any]:
+    del operation, relation
+    return {
+        "schema": SESSION_RESPONSE_SCHEMA, "resolverVersion": VERSION,
+        "requestId": request_id, "operation": SESSION_OPERATION,
+        "status": "unknown" if status == "unreachable" else status,
+        "session": None,
+        "reasons": [_reason(code, source, message, retryable)],
+    }
 
 
 def _encode(value: Mapping[str, Any]) -> bytes:
@@ -150,6 +170,7 @@ def run(
     stderr: BinaryIO | None = None,
     collector: Any = None,
     resolver: Resolver | None = None,
+    session_reader: WindowSessionReader | None = None,
 ) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
     input_stream = sys.stdin.buffer if stdin is None else stdin
@@ -190,22 +211,29 @@ def run(
         output_stream.write(_encode(response))
         return 2
     request_id, operation, relation = _recovered(raw)
+    session_schema = isinstance(raw, Mapping) and raw.get("schema") == SESSION_REQUEST_SCHEMA
+    if session_schema:
+        operation = SESSION_OPERATION
+    error_response = _session_error_response if session_schema else _error_response
     try:
-        request = parse_request(raw)
+        request = (
+            parse_window_session_request(raw) if session_schema
+            else parse_request(raw)
+        )
     except (RequestError, TypeError, ValueError) as error:
         code = error.code if isinstance(error, RequestError) else "invalid_request"
-        response = _error_response(
+        response = error_response(
             "invalid", code, "request", str(error),
             request_id=request_id, operation=operation, relation=relation,
         )
         output_stream.write(_encode(response))
         return 2
     if len(raw_bytes) > request.limits.max_request_bytes:
-        response = _error_response(
+        response = error_response(
             "invalid", "request_too_large", "request",
             "request exceeds caller maxRequestBytes",
             request_id=request.request_id, operation=request.operation,
-            relation=request.requested_relation,
+            relation=getattr(request, "requested_relation", None),
         )
         output_stream.write(_encode(response))
         return 2
@@ -213,10 +241,11 @@ def run(
     elapsed_ms = int((time.monotonic() - started) * 1000)
     remaining_ms = total_deadline_ms - elapsed_ms
     if remaining_ms <= 0:
-        response = _error_response(
+        response = error_response(
             "unreachable", "deadline_exceeded", "internal",
             "overall request deadline expired", request_id=request.request_id,
-            operation=request.operation, relation=request.requested_relation,
+            operation=request.operation,
+            relation=getattr(request, "requested_relation", None),
             retryable=True,
         )
         output_stream.write(_encode(response))
@@ -225,32 +254,44 @@ def run(
         request,
         limits=replace(request.limits, deadline_ms=max(1, remaining_ms)),
     )
-    active_resolver = resolver if resolver is not None else Resolver()
     active_collector = collector if collector is not None else LinuxCollector()
-    response = active_resolver.resolve(request, active_collector
-    )
+    if session_schema:
+        active_reader = session_reader if session_reader is not None else WindowSessionReader()
+        try:
+            response = active_reader.resolve(request, active_collector)
+        except Exception:
+            response = _session_error_response(
+                "invalid", "internal_error", "internal",
+                "window session read failed internally",
+                request_id=request.request_id,
+            )
+    else:
+        active_resolver = resolver if resolver is not None else Resolver()
+        response = active_resolver.resolve(request, active_collector)
     if (time.monotonic() - started) * 1000 >= total_deadline_ms:
-        response = _error_response(
+        response = error_response(
             "unreachable", "deadline_exceeded", "internal",
             "overall request deadline expired", request_id=request.request_id,
-            operation=request.operation, relation=request.requested_relation,
+            operation=request.operation,
+            relation=getattr(request, "requested_relation", None),
             retryable=True,
         )
     try:
         encoded = _encode(response)
     except (TypeError, ValueError, UnicodeEncodeError):
-        response = _error_response(
+        response = error_response(
             "invalid", "internal_error", "internal",
             "response could not be encoded", request_id=request.request_id,
-            operation=request.operation, relation=request.requested_relation,
+            operation=request.operation,
+            relation=getattr(request, "requested_relation", None),
         )
         encoded = _encode(response)
     if len(encoded) > request.limits.max_stdout_bytes:
-        response = _error_response(
+        response = error_response(
             "invalid", "output_limit_exceeded", "internal",
             "complete response exceeds maxStdoutBytes",
             request_id=request.request_id, operation=request.operation,
-            relation=request.requested_relation,
+            relation=getattr(request, "requested_relation", None),
         )
         encoded = _encode(response)
         if len(encoded) > request.limits.max_stdout_bytes:

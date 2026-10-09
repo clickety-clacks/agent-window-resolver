@@ -23,6 +23,10 @@ own sync script; its install test checks the copy against that commit.
 Python callers use `Resolver().resolve(request, collector)`. A production collector
 is available as `agent_window_resolver.linux.LinuxCollector`; tests can inject a
 collector. Requests and responses follow `docs/contract-v1.md` and `schema/v1.json`.
+A separate read-only `window-session` request follows
+`docs/window-session-v1.md` and `schema/window-session-v1.json`; it reads the
+current tmux session of one supplied sole-owner window for Scottland without
+changing v1 target requests or their responses.
 A Node application can call a bundled Python helper at a fixed package-relative
 path. This is an internal implementation detail, not a separately installed
 service or configurable resolver command. Each response names the library
