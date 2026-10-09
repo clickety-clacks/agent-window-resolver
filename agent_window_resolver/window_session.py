@@ -148,12 +148,16 @@ def _reason(code: str, source: str, message: str, retryable: bool = False) -> di
 
 def _response(request: WindowSessionRequest, status: str,
               session: dict[str, str] | None = None,
-              reasons: list[dict[str, Any]] | None = None) -> dict[str, Any]:
-    return {
+              reasons: list[dict[str, Any]] | None = None,
+              uncertainty: dict[str, Any] | None = None) -> dict[str, Any]:
+    response = {
         "schema": RESPONSE_SCHEMA, "resolverVersion": VERSION,
         "requestId": request.request_id, "operation": OPERATION,
         "status": status, "session": session, "reasons": reasons or [],
     }
+    if uncertainty is not None:
+        response["uncertainty"] = uncertainty
+    return response
 
 
 def _tmux_socket(argv: tuple[str, ...]) -> tuple[SocketSelector | None, bool]:
@@ -265,6 +269,22 @@ class WindowSessionReader:
     ) -> dict[str, Any]:
         launch = destination.launch_session
 
+        def unattributed_none() -> dict[str, Any]:
+            if destination.kind != "et" or launch is not None:
+                return _response(request, "none")
+            # SL-7 non-attribution does not prove that this et window cannot
+            # reach a sender on the observed host. Keep the same window's
+            # identity so a target-aware caller can decide host relevance.
+            window = request.window
+            return _response(request, "none", uncertainty={
+                "code": "et_hint_not_exact_proof", "transport": "et",
+                "host": destination.host,
+                "window": {
+                    "stableId": window.stable_id, "address": window.address,
+                    "pid": window.pid, "startTimeTicks": window.start_time_ticks,
+                },
+            })
+
         def fallback(code: str, message: str, retryable: bool = False) -> dict[str, Any]:
             reason = _reason(code, "transport", message, retryable)
             if launch is None:
@@ -287,7 +307,7 @@ class WindowSessionReader:
             if (len(local_clients) != 1
                     or local_clients[0].pid != transport_identity.pid
                     or local_clients[0].start_time_ticks != transport_identity.start_time_ticks):
-                return _response(request, "none")
+                return unattributed_none()
         try:
             remote = collector.remote_session_read(
                 destination.host, destination.socket, launch is None, deadline
@@ -334,7 +354,7 @@ class WindowSessionReader:
         ends = remote.get("terminalEnds")
         pids = ends.get(destination.kind) if isinstance(ends, dict) else None
         if not isinstance(pids, list) or len(pids) != 1:
-            return _response(request, "none")
+            return unattributed_none()
         qualified = [item["session"] for item in clients
                      if item["kind"] == destination.kind
                      and item["remoteEndPid"] == pids[0]]
@@ -344,7 +364,7 @@ class WindowSessionReader:
                 "transport": destination.kind, "basis": "current",
                 "method": "remote-unique-connection",
             })
-        return _response(request, "none")
+        return unattributed_none()
 
 
 def _window_key(window: Window) -> tuple[str, str, int, str]:

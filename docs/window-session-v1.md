@@ -32,6 +32,16 @@ the response is `found` with `basis: launch` and a reason describing the
 failed current read. Shared-process windows return `none` without reading
 their process tree. No response asks a caller to act on a window or client.
 
+A `none` response for a sole-owner et window without a launch target may carry
+`uncertainty`: `code: et_hint_not_exact_proof`, `transport: et`, the observed
+transport host, and the selected window's four identity fields. It records that
+SL-7 did not attribute a current session; it is neither a session nor endpoint
+proof. A target-aware caller can compare that host with its sender under the
+contract's machine rule and return `unknown` for a relevant unproved et window.
+Unrelated hosts do not block a complete `none` result. Collection failures
+retain their actual `unknown` reasons. Terminal naming still falls through
+when no session is found, regardless of this metadata.
+
 The operation observes local `(pid,startTimeTicks)` identities and bounded
 tmux/process data. Its only remote read is SL-5: one strict SSH invocation per
 host/request, fixed Python, current tmux clients and their bounded ancestry;

@@ -268,6 +268,7 @@ class WindowSessionReaderTests(unittest.TestCase):
         )
         self.assertEqual(result["session"]["basis"], "current")
         self.assertEqual(result["session"]["method"], "remote-unique-connection")
+        self.assertNotIn("uncertainty", result)
         self.assertEqual(collector.calls, [
             "window", "local-transports", ("remote", "example-host", True),
             "local-transports",
@@ -279,7 +280,27 @@ class WindowSessionReaderTests(unittest.TestCase):
             parse_window_session_request(request()), collector
         )
         self.assertEqual(result["status"], "none")
+        self.assertIsNone(result["session"])
+        self.assertEqual(result["uncertainty"], {
+            "code": "et_hint_not_exact_proof", "transport": "et",
+            "host": "example-host",
+            "window": {"stableId": "17", "address": "0x11", "pid": 102,
+                       "startTimeTicks": "123"},
+        })
         self.assertEqual(collector.calls, ["window", "local-transports"])
+
+        collector = StaticSessionCollector(
+            observed, remote={**remote, "clients": []}, local_transports=(end_id,)
+        )
+        result = WindowSessionReader().resolve(
+            parse_window_session_request(request()), collector
+        )
+        self.assertEqual(result["status"], "none")
+        self.assertEqual(result["uncertainty"]["code"], "et_hint_not_exact_proof")
+        self.assertEqual(collector.calls, [
+            "window", "local-transports", ("remote", "example-host", True),
+            "local-transports",
+        ])
 
     def test_remote_failure_preserves_launch_only_and_unknown_without_it(self) -> None:
         class FailingCollector(StaticSessionCollector):
@@ -305,6 +326,7 @@ class WindowSessionReaderTests(unittest.TestCase):
         )
         self.assertEqual(result["status"], "unknown")
         self.assertIsNone(result["session"])
+        self.assertNotIn("uncertainty", result)
 
     def test_cli_routes_new_schema_without_touching_v1(self) -> None:
         root = ProcessNode(ProcessIdentity("laptop", 102, "123"), None, ("kitty",))

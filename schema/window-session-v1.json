@@ -303,9 +303,40 @@
           "items": {
             "$ref": "#/$defs/reason"
           }
+        },
+        "uncertainty": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["code", "transport", "host", "window"],
+          "properties": {
+            "code": {"const": "et_hint_not_exact_proof"},
+            "transport": {"const": "et"},
+            "host": {"$ref": "#/$defs/machine"},
+            "window": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["stableId", "address", "pid", "startTimeTicks"],
+              "properties": {
+                "stableId": {"type": "string", "minLength": 1, "maxLength": 256},
+                "address": {"type": "string", "pattern": "^0x[0-9a-f]{1,32}(?![\\s\\S])"},
+                "pid": {"$ref": "#/$defs/pid"},
+                "startTimeTicks": {"$ref": "#/$defs/ticks"}
+              }
+            }
+          }
         }
       },
       "allOf": [
+        {
+          "if": {
+            "required": ["uncertainty"]
+          },
+          "then": {
+            "properties": {
+              "status": {"const": "none"}
+            }
+          }
+        },
         {
           "if": {
             "properties": {
