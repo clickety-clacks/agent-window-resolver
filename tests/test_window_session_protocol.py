@@ -4,7 +4,9 @@ from __future__ import annotations
 import unittest
 
 from agent_window_resolver.model import RequestError, parse_request
-from agent_window_resolver.window_session import parse_window_session_request
+from agent_window_resolver.window_session import (
+    parse_window_session_request, transport_destination,
+)
 
 
 def request() -> dict:
@@ -55,6 +57,29 @@ class WindowSessionProtocolTests(unittest.TestCase):
         with self.assertRaises(RequestError) as raised:
             parse_window_session_request(value)
         self.assertEqual(raised.exception.code, "unknown_field")
+
+    def test_transport_launch_and_hand_attached_hosts(self) -> None:
+        cases = [
+            (("et", "example-host", "-c", "tmux attach -t '=build'"),
+             ("et", "example-host", "build")),
+            (("et", "example-host"), ("et", "example-host", None)),
+            (("ssh", "person@example-host"), ("ssh", "example-host", None)),
+            (("mosh", "example-host"), ("mosh", "example-host", None)),
+            (("mosh-client", "-# -- example-host |", "192.0.2.1", "60001"),
+             ("mosh", "example-host", None)),
+        ]
+        for argv, expected in cases:
+            with self.subTest(argv=argv):
+                result = transport_destination(argv)
+                self.assertIsNotNone(result)
+                assert result is not None
+                self.assertEqual((result.kind, result.host, result.launch_session), expected)
+
+    def test_uncertain_transport_grammar_does_not_produce_a_host(self) -> None:
+        for argv in (("ssh", "-o"), ("et", "--unknown", "host"),
+                     ("mosh-client", "-# -- |"), ("ssh", "-Z", "host")):
+            with self.subTest(argv=argv):
+                self.assertIsNone(transport_destination(argv))
 
 
 if __name__ == "__main__":

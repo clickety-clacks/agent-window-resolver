@@ -2,8 +2,14 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from pathlib import PurePath
+import shlex
 from typing import Any, Mapping
 
+from .collector import (
+    SocketSelector, _ET_FLAGS, _ET_VALUE_OPTIONS, _et_host,
+    transport_command_hint,
+)
 from .model import (
     Limits, RequestError, Window, _exact_keys, _machine, _mapping,
     _parse_limits, _plain, canonical_machine, parse_window,
@@ -21,6 +27,109 @@ class WindowSessionRequest:
     windows: tuple[Window, ...]
     local_machine: str
     limits: Limits
+
+    @property
+    def operation(self) -> str:
+        return OPERATION
+
+
+@dataclass(frozen=True)
+class TransportDestination:
+    kind: str
+    host: str
+    launch_session: str | None
+    socket: SocketSelector | None
+
+
+def _host(value: str) -> str | None:
+    host = value.rsplit("@", 1)[-1]
+    if not host or host.startswith("-") or len(host) > 255:
+        return None
+    try:
+        _machine(host)
+    except RequestError:
+        return None
+    return host
+
+
+def transport_destination(argv: tuple[str, ...]) -> TransportDestination | None:
+    """Parse only recognized transport argv; return no host on uncertain grammar."""
+    launch = transport_command_hint(argv)
+    if launch is not None:
+        kind, host, command = launch
+        target = command.target
+        return TransportDestination(
+            kind, _host(host) or "", target.session if target.session_kind == "name" else None,
+            command.socket,
+        ) if _host(host) is not None else None
+
+    if not argv:
+        return None
+    kind = PurePath(argv[0]).name
+    values = list(argv[1:])
+    if kind == "mosh-client":
+        # mosh-client's display text carries the launch host even when the
+        # remote shell was entered without a tmux launch command.
+        if not values or not values[0].startswith("-#"):
+            return None
+        try:
+            display = shlex.split(values[0][2:].strip())
+        except ValueError:
+            return None
+        if display[:1] != ["--"] or len(display) < 2:
+            return None
+        host = _host(display[1])
+        return TransportDestination("mosh", host, None, None) if host else None
+    if kind == "et":
+        hosts: list[str] = []
+        while values:
+            value = values.pop(0)
+            if value == "--":
+                hosts.extend(values)
+                break
+            name, equals, _ = value.partition("=")
+            if value.startswith("--") and equals and name in _ET_VALUE_OPTIONS | _ET_FLAGS:
+                continue
+            if value in _ET_VALUE_OPTIONS:
+                if not values:
+                    return None
+                values.pop(0)
+            elif value in _ET_FLAGS or value.startswith("-c") and len(value) > 2:
+                continue
+            elif value.startswith("-"):
+                return None
+            else:
+                hosts.append(value)
+        host = _host(_et_host(hosts[0]) or "") if len(hosts) == 1 else None
+        return TransportDestination("et", host, None, None) if host else None
+    if kind not in {"ssh", "mosh"}:
+        return None
+    options = {
+        "ssh": {"-B", "-b", "-c", "-D", "-E", "-e", "-F", "-I", "-i", "-J",
+                "-L", "-l", "-m", "-O", "-o", "-p", "-Q", "-R", "-S", "-W", "-w"},
+        "mosh": {"-p", "--port", "--ssh"},
+    }[kind]
+    flags = {"-4", "-6", "-A", "-a", "-C", "-f", "-g", "-K", "-k", "-M",
+             "-N", "-n", "-q", "-s", "-T", "-t", "-V", "-v", "-X", "-x", "-Y", "-y"}
+    while values and values[0] != "--" and values[0].startswith("-"):
+        option = values.pop(0)
+        if option in options:
+            if not values:
+                return None
+            values.pop(0)
+        elif any(option.startswith(prefix + "=") for prefix in options):
+            continue
+        elif option in flags or (
+            kind == "ssh" and len(option) > 2
+            and all("-" + flag in flags for flag in option[1:])
+        ):
+            continue
+        else:
+            return None
+    if values and values[0] == "--":
+        values.pop(0)
+    host = _host(values[0]) if values else None
+    return TransportDestination(kind, host, None, None) if host else None
 
 
 def _window_key(window: Window) -> tuple[str, str, int, str]:
