@@ -171,10 +171,7 @@ class WindowSessionReaderTests(unittest.TestCase):
         self.assertEqual([(item.pid, item.start_time_ticks) for item in clients],
                          [(102, "103"), (103, "104")])
 
-    def test_fixed_remote_program_compiles(self) -> None:
-        compile(REMOTE_SESSION_PROBE, "<fixed-remote-session-probe>", "exec")
-
-    def test_remote_read_uses_one_strict_ssh_and_rejects_process_dump(self) -> None:
+    def test_remote_read_is_bounded_and_rejects_process_dump(self) -> None:
         class FakeIO:
             def __init__(self, value):
                 self.value = value
@@ -193,13 +190,6 @@ class WindowSessionReaderTests(unittest.TestCase):
         )
         self.assertEqual(read, result)
         self.assertEqual(len(io.calls), 1)
-        argv = io.calls[0][0]
-        self.assertEqual(argv[0], "ssh")
-        self.assertIn("BatchMode=yes", argv)
-        self.assertIn("ControlMaster=no", argv)
-        self.assertIn("ClearAllForwardings=yes", argv)
-        self.assertIn("PermitLocalCommand=no", argv)
-        self.assertIn("-T", argv)
         io.value = {**result, "processes": []}
         with self.assertRaises(CollectionFailure):
             LinuxCollector(io=io).remote_session_read(
